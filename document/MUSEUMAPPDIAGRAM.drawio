@@ -1,0 +1,181 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Pagina-1" id="gDLPWRWrkCxAP2NZHQ8r">
+    <mxGraphModel dx="1813" dy="753" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="EkD9rcA-SMku37AodLzw-3" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="MUSEUM TABLET APP" vertex="1">
+          <mxGeometry height="80" width="150" x="330" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-12" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-2" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Home Screen&lt;div&gt;&amp;nbsp;&lt;br&gt;&amp;nbsp;Objectenlijst&amp;nbsp;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="345" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-4" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;&lt;font face=&quot;Verdana&quot;&gt;BEZOEKERS DIAGRAM&lt;/font&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="45" width="190" x="20" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-14" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-13" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-16" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;curved=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="EkD9rcA-SMku37AodLzw-22" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="260" />
+              <mxPoint x="490" y="380" />
+              <mxPoint x="460" y="380" />
+            </Array>
+            <mxPoint x="520" y="710" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-11" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;shapeInside=1;fixedSize=1;rounded=0;" value="&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Object gekozen ?&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="345" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-30" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;curved=0;" target="EkD9rcA-SMku37AodLzw-22">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="305" as="sourcePoint" />
+            <mxPoint x="220" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-13" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="OBJECT&lt;br&gt;AFBEELDING&lt;br&gt;&amp;nbsp;TITEL&amp;nbsp;&lt;br&gt;INFORMATIE&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="120" x="160" y="215" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-18" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Ja" vertex="1">
+          <mxGeometry height="30" width="60" x="290" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-19" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Nee" vertex="1">
+          <mxGeometry height="30" width="60" x="440" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-22" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&amp;nbsp; HOME SCREEN&lt;div&gt;&amp;nbsp; &amp;nbsp;&lt;div&gt;&amp;nbsp;Objectenlijst&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="330" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-31" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="TERUG" vertex="1">
+          <mxGeometry height="30" width="60" x="220" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-33" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b&gt;&lt;font face=&quot;Verdana&quot;&gt;ADMIN DIAGRAM&lt;/font&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="150" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-40" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-39" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-35" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="ADMIN LOGIN&amp;nbsp; Gebruikersnaam&amp;nbsp; Wachtwoord&amp;nbsp;" vertex="1">
+          <mxGeometry height="60" width="120" x="345" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-37" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-36" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-35" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-36" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="MUSEUM TABLET APP" vertex="1">
+          <mxGeometry height="80" width="150" x="330" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-38" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Klik op het admin icon" vertex="1">
+          <mxGeometry height="30" width="90" x="320" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-42" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-39" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-41" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-44" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-39" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" target="EkD9rcA-SMku37AodLzw-72" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570.06" y="770" />
+              <mxPoint x="570.06" y="1475.06" />
+            </Array>
+            <mxPoint x="580" y="1520.9410903033088" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-39" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;shapeInside=1;fixedSize=1;rounded=0;" value="INLOGGEN GELUKT?" vertex="1">
+          <mxGeometry height="80" width="120" x="345" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-49" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-48" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-41" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="&amp;nbsp; ADMINPANEEL&lt;div&gt;&amp;nbsp;&lt;br&gt;&amp;nbsp;Object toevoegen&lt;br&gt;&amp;nbsp;Object bewerken&amp;nbsp;&lt;div&gt;&amp;nbsp;&amp;nbsp;Object verwijderen&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="120" x="160" y="725" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-45" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="JA" vertex="1">
+          <mxGeometry height="30" width="60" x="285" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-47" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="NEE" vertex="1">
+          <mxGeometry height="30" width="60" x="480" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-53" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-51" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-54" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="EkD9rcA-SMku37AodLzw-50">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-55" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="EkD9rcA-SMku37AodLzw-52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-48" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;shapeInside=1;fixedSize=1;rounded=0;" value="&lt;br&gt; Actie kiezen?  &lt;br&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="160" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-59" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-57">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-60" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="EkD9rcA-SMku37AodLzw-57">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="1100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-50" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Verwijderen Object" vertex="1">
+          <mxGeometry height="60" width="120" x="295" y="945" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-51" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Bewerken Object" vertex="1">
+          <mxGeometry height="60" width="120" x="160" y="945" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-56" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="EkD9rcA-SMku37AodLzw-57">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1100" />
+            </Array>
+            <mxPoint x="150" y="1120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-52" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="Toevoegen Object" vertex="1">
+          <mxGeometry height="60" width="120" x="25" y="945" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-62" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-57" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-61" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-57" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="OPSLAAN" vertex="1">
+          <mxGeometry height="60" width="120" x="165" y="1070" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-64" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-63" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-61" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="ADMIN PANEEL" vertex="1">
+          <mxGeometry height="60" width="120" x="165" y="1210" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-68" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="345" y="1350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-77" edge="1" parent="1" source="EkD9rcA-SMku37AodLzw-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="EkD9rcA-SMku37AodLzw-72" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-63" parent="1" style="whiteSpace=wrap;html=1;rounded=0;" value="TERUG" vertex="1">
+          <mxGeometry height="60" width="120" x="165" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-69" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="JA" vertex="1">
+          <mxGeometry height="30" width="60" x="220" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-70" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="NEE" vertex="1">
+          <mxGeometry height="30" width="60" x="280" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-71" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="ADMIN PANEEL" vertex="1">
+          <mxGeometry height="60" width="120" x="345" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="EkD9rcA-SMku37AodLzw-72" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="HOME SCREEN" vertex="1">
+          <mxGeometry height="60" width="120" x="165" y="1430" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

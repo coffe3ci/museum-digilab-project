@@ -5,6 +5,10 @@
 
 Start de applicatie en verbindt de schermen met elkaar. ``` python main.py ```
 
+**dev.py**
+
+Start de app vanuit dit bestand om de live-wijzigingen in de app te testen. ``` python dev.py ```
+
 **home_screen.py**
 
 Het hoofdscherm waarop de objecten worden weergegeven.

@@ -1,0 +1,30 @@
+<HomeScreen>:
+    FloatLayout:
+
+        # Achtergrond volgens de huisstijl
+        canvas.before:
+            Color:
+                rgb: 0, 153/255, 175/255
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        # Hoofdtitel
+        Label:
+            text: "Stadsmuseum Veenendaal"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "30sp"
+            color: 1, 1, 1, 1
+            size_hint: 0.8, 0.15
+            pos_hint: {"center_x": 0.5, "center_y": 0.55}
+
+        # Admin-icoon rechtsboven
+        Button:
+            size_hint: None, None
+            size: "55dp", "55dp"
+            pos_hint: {"right": 0.97, "top": 0.97}
+            background_normal: "assets/objects_img/logo/management.png"
+            background_down: "assets/objects_img/logo/management.png"
+            background_color: 1, 1, 1, 1
+            border: 0, 0, 0, 0
+            on_release: root.go_to_admin()

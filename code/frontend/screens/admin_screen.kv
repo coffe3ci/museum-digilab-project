@@ -1,0 +1,122 @@
+<AdminScreen>:
+    FloatLayout:
+
+        canvas.before:
+            Color:
+                rgb: 0, 153/255, 175/255
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        Image:
+            source: "assets/objects_img/logo/management.png"
+            size_hint: None, None
+            size: dp(140), dp(140)
+            pos_hint: {"center_x": 0.5, "center_y": 0.82}
+            allow_stretch: True
+            keep_ratio: True
+
+
+        Label:
+            text: "Welkom terug"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "30sp"
+            color: 1, 1, 1, 1
+            size_hint: 0.9, None
+            height: "50dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.68}
+
+        Label:
+            text: "Log in om verder te gaan"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "16sp"
+            color: 1, 1, 1, 1
+            size_hint: 0.9, None
+            height: "30dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.62}
+
+        TextInput:
+            id: username
+            hint_text: "Gebruikersnaam"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "17sp"
+            multiline: False
+            padding: "18dp", "14dp"
+            size_hint: 0.78, None
+            height: "55dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.51}
+            background_color: 1, 1, 1, 1
+            foreground_color: 0.1, 0.15, 0.18, 1
+            cursor_color: 0, 153/255, 175/255
+
+        TextInput:
+            id: password
+            hint_text: "Wachtwoord"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "17sp"
+            password: True
+            multiline: False
+            padding: "18dp", "14dp"
+            size_hint: 0.78, None
+            height: "55dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.40}
+            background_color: 1, 1, 1, 1
+            foreground_color: 0.1, 0.15, 0.18, 1
+            cursor_color: 0, 153/255, 175/255
+
+        Button:
+            text: "Inloggen"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "20sp"
+            bold: True
+            size_hint: 0.40, None
+            height: "58dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.28}
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+            color: 0.1, 0.12, 0.13, 1
+
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.16
+                RoundedRectangle:
+                    pos: self.x + dp(2), self.y - dp(3)
+                    size: self.size
+                    radius: [dp(10), dp(10), dp(10), dp(10)]
+
+                Color:
+                    rgba: 219/255, 181/255, 65/255, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(10), dp(10), dp(10), dp(10)]
+
+        Button:
+            text: "Terug"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "20sp"
+            bold: True
+            size_hint: 0.40, None
+            height: "58dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.18}
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+            color: 1, 1, 1, 1
+            on_release: root.go_to_home()
+
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.16
+                RoundedRectangle:
+                    pos: self.x + dp(2), self.y - dp(3)
+                    size: self.size
+                    radius: [dp(10), dp(10), dp(10), dp(10)]
+
+                Color:
+                    rgba: 202/255, 83/255, 71/255, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(10), dp(10), dp(10), dp(10)]

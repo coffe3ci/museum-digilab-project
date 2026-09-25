@@ -28,11 +28,8 @@ class MuseumApp(App):
         self.start_file_watcher()
 
         return self.sm
-
+    
     def load_kv_files(self):
-        Builder.unload_file("frontend/screens/home_screen.kv")
-        Builder.unload_file("frontend/screens/admin_screen.kv")
-
         Builder.load_file("frontend/screens/home_screen.kv")
         Builder.load_file("frontend/screens/admin_screen.kv")
 
@@ -75,10 +72,10 @@ class MuseumApp(App):
 
             self.sm.current = current_screen
 
-            print("KV dosyalari yenilendi.")
+            print("KV besattand herladen")
 
         except Exception as e:
-            print("KV yenileme hatasi:", e)
+            print("KV fout", e)
 
 
 if __name__ == "__main__":

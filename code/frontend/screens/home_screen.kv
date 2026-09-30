@@ -1,24 +1,23 @@
 <HomeScreen>:
     FloatLayout:
-
-        # Achtergrond volgens de huisstijl
+        # 1. Achtergrond (Beige/Crème achtergrond)
         canvas.before:
             Color:
-                rgb: 0, 153/255, 175/255
+                rgba: 244/255, 239/255, 230/255, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
 
-        # Hoofdtitel
+        # 2. Hoofdtitel
         Label:
             text: "Stadsmuseum Veenendaal"
             font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
             font_size: "30sp"
-            color: 1, 1, 1, 1
+            color: 125/255, 67/255, 53/255, 1
             size_hint: 0.8, 0.15
             pos_hint: {"center_x": 0.5, "center_y": 0.55}
 
-        # Admin-icoon rechtsboven
+        # 3. Admin-icoon (rechtsboven)
         Button:
             size_hint: None, None
             size: "55dp", "55dp"

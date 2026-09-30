@@ -1,0 +1,272 @@
+# ============================================================
+# OBJECT ITEM
+# ============================================================
+
+<ObjectItem@BoxLayout>:
+    object_naam: "Veldfles, circa 1944"
+
+    orientation: "horizontal"
+    size_hint_y: None
+    height: "65dp"
+    padding: ["12dp", "8dp"]
+    spacing: "10dp"
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(10)]
+
+    # FOTO VOORBEELD
+    Widget:
+        size_hint: None, None
+        size: "48dp", "48dp"
+        pos_hint: {"center_y": 0.5}
+
+        canvas.before:
+            Color:
+                rgba: 228/255, 222/255, 210/255, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(6)]
+
+    # OBJECTNAAM
+    Label:
+        text: root.object_naam
+        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+        font_size: "14sp"
+        bold: True
+        color: 0.2, 0.2, 0.2, 1
+
+        size_hint_x: 1
+        halign: "left"
+        valign: "middle"
+        text_size: self.size
+
+    # BEWERKEN
+    Button:
+        text: "Bewerken"
+        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+        font_size: "11sp"
+        bold: True
+        color: 125/255, 67/255, 53/255, 1
+
+        size_hint: None, None
+        size: "75dp", "36dp"
+
+        background_normal: ""
+        background_down: ""
+        background_color: 232/255, 224/255, 212/255, 1
+
+        on_release:
+            app.root.get_screen("admin_panel").object_bewerken(root.object_naam)
+
+    # VERWIJDEREN
+    Button:
+        text: "Verwijderen"
+        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+        font_size: "10sp"
+        bold: True
+        color: 125/255, 67/255, 53/255, 1
+
+        size_hint: None, None
+        size: "85dp", "36dp"
+
+        background_normal: ""
+        background_down: ""
+        background_color: 232/255, 224/255, 212/255, 1
+
+        on_release:
+            app.root.get_screen("admin_panel").object_verwijderen(root.object_naam)
+
+
+# ============================================================
+# ADMIN PANEL SCREEN
+# ============================================================
+
+<AdminPanelScreen>:
+
+    canvas.before:
+        Color:
+            rgba: 244/255, 239/255, 230/255, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: ["20dp", "20dp", "20dp", "20dp"]
+        spacing: "15dp"
+
+        # ====================================================
+        # BOVENSTE BALK
+        # ====================================================
+
+        BoxLayout:
+            orientation: "horizontal"
+            size_hint_y: None
+            height: "55dp"
+            spacing: "12dp"
+
+            Button:
+                text: "<"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "22sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+
+                size_hint: None, None
+                size: "40dp", "40dp"
+
+                background_normal: ""
+                background_down: ""
+                background_color: 232/255, 224/255, 212/255, 1
+
+                on_release:
+                    root.terug_naar_home()
+
+            BoxLayout:
+                orientation: "vertical"
+
+                Label:
+                    text: "STADSMUSEUM VEENENDAAL"
+                    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                    font_size: "11sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+                    halign: "left"
+                    valign: "bottom"
+                    text_size: self.size
+
+                Label:
+                    text: "Beheer objecten"
+                    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                    font_size: "22sp"
+                    bold: True
+                    color: 0.15, 0.15, 0.15, 1
+                    halign: "left"
+                    valign: "top"
+                    text_size: self.size
+
+
+        # ====================================================
+        # OBJECT TOEVOEGEN
+        # ====================================================
+
+        Button:
+            text: "+  Object toevoegen"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "16sp"
+            bold: True
+            color: 1, 1, 1, 1
+
+            size_hint_y: None
+            height: "55dp"
+
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+
+            on_release:
+                root.object_toevoegen()
+
+            canvas.before:
+                Color:
+                    rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(10)]
+
+
+        # ====================================================
+        # AANTAL OBJECTEN
+        # ====================================================
+
+        Label:
+            text: "30 OBJECTEN"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "12sp"
+            bold: True
+            color: 0.5, 0.5, 0.5, 1
+
+            size_hint_y: None
+            height: "20dp"
+
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+
+        # ====================================================
+        # OBJECTEN LIJST
+        # ====================================================
+
+        ScrollView:
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                id: objecten_lijst
+
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
+
+                ObjectItem:
+                    object_naam: "1voorbeeld, circa 1944"
+
+                ObjectItem:
+                    object_naam: "2Schoenen, circa 1920"
+
+                ObjectItem:
+                    object_naam: "3Schilderij, circa 1895"
+
+                ObjectItem:
+                    object_naam: "4Klok, circa 1910"
+
+                ObjectItem:
+                    object_naam: "5Vaas, circa 1935"
+
+
+        # ====================================================
+        # UITLOGGEN
+        # ====================================================
+
+        AnchorLayout:
+            size_hint_y: None
+            height: "50dp"
+
+            anchor_x: "center"
+            anchor_y: "center"
+
+            Button:
+                text: "Uitloggen"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "15sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+
+                size_hint: None, None
+                size: "140dp", "44dp"
+
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+
+                on_release:
+                    root.uitloggen()
+
+                canvas.before:
+                    Color:
+                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(8)]

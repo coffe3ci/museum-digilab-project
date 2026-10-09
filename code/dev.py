@@ -34,6 +34,9 @@ from frontend.screens.admin_screen import AdminScreen
 # Importeert het beheerpaneel voor de museumobjecten.
 from frontend.screens.admin_panel import AdminPanelScreen
 
+from frontend.screens.object_screen import ObjectScreen
+
+
 
 # ============================================================
 # MUSEUM APP
@@ -56,7 +59,11 @@ class MuseumApp(App):
 
         # KV-bestand van het beheerpaneel.
         "frontend/screens/admin_panel.kv",
+
+        # KV-bestand van het objectenscherm.
+        "frontend/screens/object_screen.kv",
     ]
+
 
 
     # ========================================================
@@ -97,6 +104,12 @@ class MuseumApp(App):
         self.sm.add_widget(
             AdminPanelScreen(name="admin_panel")
         )
+
+        # Voegt het objectenscherm toe.
+        self.sm.add_widget(
+            ObjectScreen(name="objects")
+        )
+
 
 
         # Start de automatische controle van de KV-bestanden.
@@ -284,6 +297,11 @@ class MuseumApp(App):
                 AdminScreen(name="admin")
             )
 
+                        # Voegt het objectenscherm opnieuw toe.
+            self.sm.add_widget(
+                ObjectScreen(name="objects")
+            )
+
 
             # Voegt het adminpaneel opnieuw toe.
             self.sm.add_widget(
@@ -296,6 +314,7 @@ class MuseumApp(App):
                 "home",
                 "admin",
                 "admin_panel",
+                "objects",
             ]:
 
                 # Gaat terug naar hetzelfde scherm.

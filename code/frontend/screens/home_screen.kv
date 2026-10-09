@@ -7,15 +7,44 @@
             Rectangle:
                 pos: self.pos
                 size: self.size
+                # 2. Button Layout
+                # 2. Titel + knop
+        BoxLayout:
+            orientation: "vertical"
+            size_hint: 0.6, 0.4
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            spacing: "20dp"
 
-        # 2. Hoofdtitel
-        Label:
-            text: "Stadsmuseum Veenendaal"
-            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-            font_size: "30sp"
-            color: 125/255, 67/255, 53/255, 1
-            size_hint: 0.8, 0.15
-            pos_hint: {"center_x": 0.5, "center_y": 0.55}
+            Label:
+                text: "Stadsmuseum Veenendaal"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "30sp"
+                color: 125/255, 67/255, 53/255, 1
+
+            Button:
+                text: "Bekijk de objecten"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "16sp"
+                bold: True
+                size_hint: 0.6, None
+                height: "60dp"
+                pos_hint: {"center_x": 0.5}
+
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_release: root.go_to_objects()
+
+                canvas.before:
+                    Color:
+                        rgba: (100/255, 50/255, 40/255, 1) if self.state == 'down' else (125/255, 67/255, 53/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+
 
         # 3. Admin-icoon (rechtsboven)
         Button:

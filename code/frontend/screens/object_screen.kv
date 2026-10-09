@@ -1,0 +1,59 @@
+<ObjectScreen>:
+    FloatLayout:
+        # 1. Achtergrond (Beige/Crème achtergrond)
+        canvas.before:
+            Color:
+                rgba: 244/255, 239/255, 230/255, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                # 2. Button Layout
+        BoxLayout:
+            orientation: "vertical"
+            size_hint: 0.8, 0.75
+            pos_hint: {"center_x": 0.5, "y": 0.05}
+            spacing: "20dp"
+
+        GridLayout:
+            id: grid
+            cols: 3
+            spacing: "15dp"
+
+        BoxLayout:
+            id: pagina_knoppen
+            size_hint_y: None
+            height: "30dp"
+            spacing: "15dp"
+
+
+
+        # 3. Admin-icoon (rechtsboven)
+        Button:
+            size_hint: None, None
+            size: "55dp", "55dp"
+            pos_hint: {"right": 0.97, "top": 0.97}
+            background_normal: "assets/objects_img/logo/management.png"
+            background_down: "assets/objects_img/logo/management.png"
+            background_color: 1, 1, 1, 1
+            border: 0, 0, 0, 0
+            on_release: root.go_to_admin()
+        
+        # 4. Terug-knop (Ronde knop linksboven)
+        Button:
+            text: "<"
+            font_size: "22sp"
+            color: 0.2, 0.2, 0.2, 1
+            size_hint: None, None
+            size: "44dp", "44dp"
+            pos_hint: {"x": 0.04, "top": 0.96}
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+            on_release: root.terug_naar_home()
+            canvas.before:
+                Color:
+                    rgba: (210/255, 200/255, 188/255, 1) if self.state == 'down' else (232/255, 224/255, 212/255, 1)
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [22]

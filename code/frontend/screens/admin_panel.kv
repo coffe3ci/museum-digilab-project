@@ -3,7 +3,8 @@
 # ============================================================
 
 <ObjectItem@BoxLayout>:
-    object_naam: "Veldfles, circa 1944"
+    object_naam: ""
+    object_id: 0
 
     orientation: "horizontal"
     size_hint_y: None
@@ -62,7 +63,7 @@
         background_color: 232/255, 224/255, 212/255, 1
 
         on_release:
-            app.root.get_screen("admin_panel").object_bewerken(root.object_naam)
+            app.root.get_screen("admin_panel").object_bewerken(root.object_id)
 
     # VERWIJDEREN
     Button:
@@ -80,7 +81,218 @@
         background_color: 232/255, 224/255, 212/255, 1
 
         on_release:
-            app.root.get_screen("admin_panel").object_verwijderen(root.object_naam)
+            app.root.get_screen("admin_panel").object_verwijderen(root.object_id, root.object_naam)
+
+
+# ============================================================
+# INVOERVELD (gebruikt in het objectformulier)
+# ============================================================
+
+<FormulierVeld@TextInput>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "16sp"
+    padding: ["14dp", "12dp"]
+    background_normal: ""
+    background_active: ""
+    background_color: 0, 0, 0, 0
+    foreground_color: 0.1, 0.1, 0.1, 1
+    cursor_color: 125/255, 67/255, 53/255, 1
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+        Color:
+            rgba: (125/255, 67/255, 53/255, 1) if self.focus else (210/255, 210/255, 210/255, 1)
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, 12)
+            width: 1.2
+
+
+# ============================================================
+# OBJECTFORMULIER (pop-up voor toevoegen en bewerken)
+# ============================================================
+
+<ObjectFormulier@Popup>:
+    obj_id: 0    # 0 = nieuw object, anders het id van het object dat bewerkt wordt
+
+    title: "Object toevoegen" if self.obj_id == 0 else "Object bewerken"
+    title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    title_size: "20sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: 0.6, None
+    height: "380dp"
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "8dp"
+
+        Label:
+            text: "Titel"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "13sp"
+            bold: True
+            color: 0.3, 0.3, 0.3, 1
+            size_hint_y: None
+            height: "20dp"
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+        FormulierVeld:
+            id: titel
+            multiline: False
+            size_hint_y: None
+            height: "46dp"
+
+        Label:
+            text: "Beschrijving"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "13sp"
+            bold: True
+            color: 0.3, 0.3, 0.3, 1
+            size_hint_y: None
+            height: "20dp"
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+        FormulierVeld:
+            id: beschrijving
+
+        Label:
+            id: foutmelding
+            text: ""
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "13sp"
+            bold: True
+            color: 0.75, 0.20, 0.15, 1
+            size_hint_y: None
+            height: "20dp"
+
+        BoxLayout:
+            size_hint_y: None
+            height: "48dp"
+            spacing: "12dp"
+
+            Button:
+                text: "Annuleren"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "15sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                on_release: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+            Button:
+                text: "Opslaan"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "15sp"
+                bold: True
+                color: 1, 1, 1, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                on_release: app.root.get_screen("admin_panel").formulier_opslaan(root)
+                canvas.before:
+                    Color:
+                        rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+
+# ============================================================
+# BEVESTIGEN VERWIJDEREN (pop-up)
+# ============================================================
+
+<BevestigVerwijderen@Popup>:
+    obj_id: 0
+    object_naam: ""
+
+    title: "Object verwijderen"
+    title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    title_size: "20sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: 0.5, None
+    height: "200dp"
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "12dp"
+
+        Label:
+            text: 'Weet je zeker dat je "' + root.object_naam + '" wilt verwijderen?'
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "15sp"
+            color: 0.2, 0.2, 0.2, 1
+            halign: "center"
+            valign: "middle"
+            text_size: self.size
+
+        BoxLayout:
+            size_hint_y: None
+            height: "48dp"
+            spacing: "12dp"
+
+            Button:
+                text: "Annuleren"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "15sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                on_release: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+            Button:
+                text: "Verwijderen"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "15sp"
+                bold: True
+                color: 1, 1, 1, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                on_release: app.root.get_screen("admin_panel").verwijderen_bevestigd(root)
+                canvas.before:
+                    Color:
+                        rgba: (140/255, 35/255, 25/255, 1) if self.state == "down" else (180/255, 50/255, 40/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
 
 
 # ============================================================
@@ -188,7 +400,8 @@
         # ====================================================
 
         Label:
-            text: "30 OBJECTEN"
+            id: aantal_label
+            text: "0 OBJECTEN"
             font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
             font_size: "12sp"
             bold: True
@@ -218,20 +431,7 @@
                 height: self.minimum_height
                 spacing: "10dp"
 
-                ObjectItem:
-                    object_naam: "1voorbeeld, circa 1944"
-
-                ObjectItem:
-                    object_naam: "2Schoenen, circa 1920"
-
-                ObjectItem:
-                    object_naam: "3Schilderij, circa 1895"
-
-                ObjectItem:
-                    object_naam: "4Klok, circa 1910"
-
-                ObjectItem:
-                    object_naam: "5Vaas, circa 1935"
+                # De ObjectItems worden in admin_panel.py aangemaakt (laad_objecten)
 
 
         # ====================================================

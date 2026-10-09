@@ -19,3 +19,27 @@ class ObjectManager:
         )
         conn.commit()
         conn.close()
+
+    def get_object(self, obj_id):
+        conn = get_connection()
+        row = conn.execute(
+            "SELECT id, title, description, image_path FROM objects WHERE id = ?",
+            (obj_id,)
+        ).fetchone()
+        conn.close()
+        return row
+
+    def update_object(self, obj_id, title, description):
+        conn = get_connection()
+        conn.execute(
+            "UPDATE objects SET title = ?, description = ? WHERE id = ?",
+            (title, description, obj_id)
+        )
+        conn.commit()
+        conn.close()
+
+    def delete_object(self, obj_id):
+        conn = get_connection()
+        conn.execute("DELETE FROM objects WHERE id = ?", (obj_id,))
+        conn.commit()
+        conn.close()

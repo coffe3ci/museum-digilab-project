@@ -1,3 +1,73 @@
+# ObjectKnop is een Python-klasse (zie object_screen.py); hier staat alleen hoe hij eruitziet.
+<ObjectKnop>:
+    canvas.before:
+        # Witte afgeronde achtergrond (zichtbaar als er geen afbeelding is)
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+
+        # De afbeelding met afgeronde hoeken, via een "stencil" (sjabloon):
+        # 1. teken de vorm (afgerond vlak) als sjabloon
+        StencilPush
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+        StencilUse
+
+        # 2. teken de afbeelding; alleen het deel binnen het sjabloon is zichtbaar.
+        #    root.uitsnede is het bijgesneden deel van de afbeelding (zoals "cover").
+        Color:
+            rgba: (1, 1, 1, 1) if root.uitsnede else (1, 1, 1, 0)
+        Rectangle:
+            texture: root.uitsnede
+            pos: self.pos
+            size: self.size
+
+        # 3. sjabloon weer opruimen
+        StencilUnUse
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+        StencilPop
+
+    # Knop wordt iets donkerder als je erop drukt (ook over de afbeelding heen)
+    canvas.after:
+        Color:
+            rgba: (0, 0, 0, 0.15) if self.state == "down" else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+
+    # Titel: met afbeelding op een donkere balk onderaan, zonder afbeelding midden in de knop
+    Label:
+        text: root.titel
+        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+        font_size: "15sp"
+        bold: True
+        color: (1, 1, 1, 1) if root.afbeelding else (0.2, 0.2, 0.2, 1)
+        size_hint_x: 1
+        size_hint_y: None if root.afbeelding else 1
+        height: "36dp"
+        pos_hint: {"x": 0, "y": 0}
+        halign: "center"
+        valign: "middle"
+        text_size: self.size
+
+        canvas.before:
+            Color:
+                rgba: (0, 0, 0, 0.55) if root.afbeelding else (0, 0, 0, 0)
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [0, 0, 12, 12]   # linksboven, rechtsboven, rechtsonder, linksonder
+
+
 <ObjectScreen>:
     FloatLayout:
         # 1. Achtergrond (Beige/Crème achtergrond)

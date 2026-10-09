@@ -7,6 +7,7 @@ from frontend.screens.admin_screen import AdminScreen  # Importeer de AdminScree
 from frontend.screens.admin_panel import AdminPanelScreen  # Importeer de AdminPanelScreen-klasse voor het beheerderspaneel
 
 from frontend.screens.object_screen import ObjectScreen
+from frontend.screens.object_detail_screen import ObjectDetailScreen  # Detailpagina van één object
 
 class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft van Kivy App
 
@@ -31,6 +32,11 @@ class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft
             encoding="utf-8"
         )
 
+        Builder.load_file(
+            "frontend/screens/object_detail_screen.kv",
+            encoding="utf-8"
+        )
+
 
         sm = ScreenManager()  # Maak een nieuwe ScreenManager-instantie aan die alle schermen gaat beheren
 
@@ -48,6 +54,10 @@ class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft
 
         sm.add_widget(
             ObjectScreen(name="objects")
+        )
+
+        sm.add_widget(
+            ObjectDetailScreen(name="object_detail")
         )
 
         return sm  # Geef de geconfigureerde ScreenManager terug als het hoofd-widget van de app

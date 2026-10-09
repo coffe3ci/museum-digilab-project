@@ -36,6 +36,9 @@ from frontend.screens.admin_panel import AdminPanelScreen
 
 from frontend.screens.object_screen import ObjectScreen
 
+# Importeert de detailpagina van één object.
+from frontend.screens.object_detail_screen import ObjectDetailScreen
+
 
 
 # ============================================================
@@ -62,6 +65,9 @@ class MuseumApp(App):
 
         # KV-bestand van het objectenscherm.
         "frontend/screens/object_screen.kv",
+
+        # KV-bestand van de detailpagina van een object.
+        "frontend/screens/object_detail_screen.kv",
     ]
 
 
@@ -108,6 +114,11 @@ class MuseumApp(App):
         # Voegt het objectenscherm toe.
         self.sm.add_widget(
             ObjectScreen(name="objects")
+        )
+
+        # Voegt de detailpagina van een object toe.
+        self.sm.add_widget(
+            ObjectDetailScreen(name="object_detail")
         )
 
 
@@ -302,6 +313,11 @@ class MuseumApp(App):
                 ObjectScreen(name="objects")
             )
 
+            # Voegt de detailpagina opnieuw toe.
+            self.sm.add_widget(
+                ObjectDetailScreen(name="object_detail")
+            )
+
 
             # Voegt het adminpaneel opnieuw toe.
             self.sm.add_widget(
@@ -315,6 +331,7 @@ class MuseumApp(App):
                 "admin",
                 "admin_panel",
                 "objects",
+                "object_detail",
             ]:
 
                 # Gaat terug naar hetzelfde scherm.

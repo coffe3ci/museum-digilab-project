@@ -5,6 +5,7 @@
 <ObjectItem@BoxLayout>:
     object_naam: ""
     object_id: 0
+    afbeelding: ""
 
     orientation: "horizontal"
     size_hint_y: None
@@ -21,10 +22,12 @@
             radius: [dp(10)]
 
     # FOTO VOORBEELD
-    Widget:
+    Image:
+        source: root.afbeelding
         size_hint: None, None
         size: "48dp", "48dp"
         pos_hint: {"center_y": 0.5}
+        fit_mode: "cover"
 
         canvas.before:
             Color:
@@ -33,6 +36,7 @@
                 pos: self.pos
                 size: self.size
                 radius: [dp(6)]
+
 
     # OBJECTNAAM
     Label:
@@ -119,6 +123,8 @@
 <ObjectFormulier@Popup>:
     obj_id: 0    # 0 = nieuw object, anders het id van het object dat bewerkt wordt
 
+    afbeelding: ""
+
     title: "Object toevoegen" if self.obj_id == 0 else "Object bewerken"
     title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
     title_size: "20sp"
@@ -127,7 +133,7 @@
     background: ""
     background_color: 244/255, 239/255, 230/255, 1
     size_hint: 0.6, None
-    height: "380dp"
+    height: "480dp"
     auto_dismiss: False
 
     BoxLayout:
@@ -167,6 +173,54 @@
 
         FormulierVeld:
             id: beschrijving
+    
+        Label:
+            text: "Afbeelding"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "13sp"
+            bold: True
+            color: 0.3, 0.3, 0.3, 1
+            size_hint_y: None
+            height: "20dp"
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+        BoxLayout:
+            size_hint_y: None
+            height: "70dp"
+            spacing: "10dp"
+
+            Image:
+                source: root.afbeelding
+                size_hint_x: None
+                width: "70dp"
+                fit_mode: "contain"
+                opacity: 1 if root.afbeelding else 0   # onzichtbaar als er geen afbeelding is
+
+            Button:
+                text: "Kies afbeelding"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "14sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 232/255, 224/255, 212/255, 1
+                on_release: app.root.get_screen("admin_panel").kies_afbeelding(root)
+
+            Button:
+                text: "Verwijder"
+                size_hint_x: None
+                width: "90dp"
+                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                font_size: "14sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 232/255, 224/255, 212/255, 1
+                on_release: root.afbeelding = ""
 
         Label:
             id: foutmelding
@@ -470,3 +524,37 @@
                         pos: self.pos
                         size: self.size
                         radius: [dp(8)]
+
+# ============================================================
+# AFBEELDING KIEZEN (pop-up)
+# ============================================================
+
+<AfbeeldingKiezer@Popup>:
+    formulier: None   # het formulier dat de afbeelding moet krijgen
+
+    title: "Kies een afbeelding"
+    title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    title_size: "20sp"
+    size_hint: 0.8, 0.8
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        spacing: "10dp"
+
+        FileChooserIconView:
+            id: kiezer
+            filters: ["*.png", "*.jpg", "*.jpeg"]   # alleen afbeeldingen tonen
+
+        BoxLayout:
+            size_hint_y: None
+            height: "48dp"
+            spacing: "12dp"
+
+            Button:
+                text: "Annuleren"
+                on_release: root.dismiss()
+
+            Button:
+                text: "Kiezen"
+                on_release: app.root.get_screen("admin_panel").afbeelding_gekozen(root)

@@ -97,16 +97,15 @@
 
 
 
-        # 3. Admin-icoon (rechtsboven)
+        # 3. Onzichtbare admin-knop (rechtsboven): 2x snel tikken opent het inlogscherm
         Button:
             size_hint: None, None
             size: "55dp", "55dp"
             pos_hint: {"right": 0.97, "top": 0.97}
-            background_normal: "assets/objects_img/logo/management.png"
-            background_down: "assets/objects_img/logo/management.png"
-            background_color: 1, 1, 1, 1
-            border: 0, 0, 0, 0
-            on_release: root.go_to_admin()
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+            on_release: root.admin_tik()
         
         # 4. Terug-knop (Ronde knop linksboven)
         Button:

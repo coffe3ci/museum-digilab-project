@@ -31,7 +31,7 @@ class ObjectScreen(Screen):
         pagina_objecten = self.objecten[start:start + PER_PAGINA]
 
         for obj in pagina_objecten:
-            knop = Button(text=obj["title"])
+            knop = Button(text=obj[1])
             # obj_id=obj["id"] zorgt dat elke knop zijn eigen id onthoudt
             knop.bind(on_release=lambda btn, obj_id=obj["id"]: self.open_object(obj_id))
             grid.add_widget(knop)

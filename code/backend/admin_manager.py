@@ -1,9 +1,27 @@
-class AdminManager:  # Definieer de AdminManager-klasse die de authenticatielogica afhandelt
-    USERNAME = "admin"  # Ingesteld als de standaard en toegestane gebruikersnaam voor de beheerder
-    PASSWORD = "admin123"  # Ingesteld als het standaard en vereiste wachtwoord voor de beheerder
+import sqlite3
 
-    def login(self, username, password):  # Functie/methode om de ingevoerde inloggegevens te controleren
-        return (  # Geef de vergelijkingsuitslag direct terug als een boolean (True of False)
-            username == self.USERNAME  # Controleer of de ingevoerde gebruikersnaam overeenkomt met de ingestelde gebruikersnaam
-            and password == self.PASSWORD  # Controleer of het ingevoerde wachtwoord overeenkomt met het ingestelde wachtwoord
+
+class AdminManager:
+    # Hulpmethode om verbinding te maken met de database
+    def get_connection(self):
+        return sqlite3.connect("database/museum.db")
+
+    def login(self, username, password):
+        # Maak verbinding met de database
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        # Controleer of de ingevoerde gebruikersnaam en het wachtwoord overeenkomen
+        cursor.execute(
+            "SELECT * FROM admin WHERE gebruikersnaam=? AND wachtwoord=?",
+            (username, password),
         )
+
+        # Haal de gevonden gebruiker op uit het resultaat
+        gebruiker = cursor.fetchone()
+
+        # Sluit de databaseverbinding
+        conn.close()
+
+        # Geeft True terug als de gebruiker bestaat, anders False
+        return gebruiker is not None

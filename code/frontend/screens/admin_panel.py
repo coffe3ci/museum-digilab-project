@@ -14,7 +14,7 @@ class AdminPanelScreen(Screen):
         objecten = ObjectManager().get_all_objects()
         for obj in objecten:
             item = Factory.ObjectItem()
-            item.object_naam = f"{obj['title']}, {obj['description']}"
+            item.object_naam = f"{obj[1]}, {obj[2]}"
             item.object_id = obj["id"]
             lijst.add_widget(item)
 
@@ -34,8 +34,8 @@ class AdminPanelScreen(Screen):
 
         formulier = Factory.ObjectFormulier()
         formulier.obj_id = obj_id # Onthoudt welk object bewerkt wordt
-        formulier.ids.titel.text = obj["title"] # Vult de huidige gegevens in
-        formulier.ids.beschrijving.text = obj["description"]
+        formulier.ids.titel.text = obj[1] # Vult de huidige gegevens in
+        formulier.ids.beschrijving.text = obj[2]
         formulier.open()
 
     def formulier_opslaan(self, formulier):

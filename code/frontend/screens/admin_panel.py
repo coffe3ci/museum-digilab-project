@@ -20,7 +20,7 @@ class AdminPanelScreen(Screen):
         objecten = ObjectManager().get_all_objects()
         for obj in objecten:
             item = Factory.ObjectItem()
-            item.object_naam = f"{obj[1]}, {obj[2]}"
+            item.object_naam = obj[1]  # Alleen de titel, geen beschrijving
             item.object_id = obj["id"]
             item.nummer = str(obj["id"])  # Het id is ook het nummer op de objectenwand
             item.afbeelding = obj[3] or ""  # obj[3] = afbeelding (None wordt "")
@@ -48,6 +48,7 @@ class AdminPanelScreen(Screen):
         formulier.ids.titel.text = obj[1]
         formulier.ids.beschrijving.text = obj[2]
         formulier.afbeelding = obj[3] or ""
+        formulier.ids.hoofd_formaat.text = (obj["hoofd_formaat"] or "normaal").capitalize()  # "groot" -> "Groot"
         formulier.extra_afbeeldingen = ObjectManager().get_extra_afbeeldingen(obj_id)
         self.toon_extra_afbeeldingen(formulier)
         formulier.open()
@@ -69,12 +70,13 @@ class AdminPanelScreen(Screen):
         nummer = int(nummer_tekst)
 
         afbeelding = formulier.afbeelding or None  # "" wordt None (leeg) in de database
+        hoofd_formaat = formulier.ids.hoofd_formaat.text.lower()  # grootte van de hoofdfoto op de objectpagina
 
         if formulier.obj_id == 0:
-            obj_id = ObjectManager().add_object(titel, beschrijving, afbeelding) # Nieuw object (achteraan)
+            obj_id = ObjectManager().add_object(titel, beschrijving, afbeelding, hoofd_formaat) # Nieuw object (achteraan)
         else:
             obj_id = formulier.obj_id
-            ObjectManager().update_object(obj_id, titel, beschrijving, afbeelding) # Bestaand object
+            ObjectManager().update_object(obj_id, titel, beschrijving, afbeelding, hoofd_formaat) # Bestaand object
 
         # Extra afbeeldingen opslaan (voor het ruilen, dan verhuizen ze vanzelf mee)
         ObjectManager().zet_extra_afbeeldingen(obj_id, formulier.extra_afbeeldingen)

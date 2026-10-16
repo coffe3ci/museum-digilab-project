@@ -39,6 +39,11 @@ from frontend.screens.object_screen import ObjectScreen
 # Importeert de detailpagina van één object.
 from frontend.screens.object_detail_screen import ObjectDetailScreen
 
+# De lettertypes "Titel", "Tekst" en "Klein" (moet vóór het laden van de .kv-bestanden).
+from frontend.fonts import registreer_fonts
+
+registreer_fonts()
+
 
 
 # ============================================================

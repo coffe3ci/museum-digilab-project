@@ -3,11 +3,12 @@ import os  # Om te controleren of een afbeelding echt bestaat
 from kivy.clock import Clock  # Om het herschikken van de zijkolom één keer per frame te doen
 from kivy.factory import Factory  # Maakt ExtraFoto's aan (gedefinieerd in object_detail_screen.kv)
 from kivy.metrics import dp  # Zet "dp"-waarden om naar pixels
-from kivy.properties import StringProperty
+from kivy.properties import NumericProperty, StringProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
 from backend.object_manager import ObjectManager
+from frontend.fonts import voor_titel  # Vervangt tekens die het Stanley-font niet heeft
 
 TUSSENRUIMTE = dp(20)  # Ruimte tussen foto's die automatisch onder elkaar staan
 
@@ -18,6 +19,15 @@ FORMATEN = {
     "klein": (150, 150),
     "normaal": (250, 250),
     "groot": (350, 350),
+}
+
+# Hoogte van de hoofdfoto (het schilderij bovenaan) als deel van de schermhoogte.
+# 0 = origineel: de foto op zijn echte grootte (nooit breder dan de pagina).
+HOOFD_FORMATEN = {
+    "klein": 0.25,
+    "normaal": 0.35,
+    "groot": 0.50,
+    "origineel": 0,
 }
 
 
@@ -61,6 +71,7 @@ class ObjectDetailScreen(Screen):
     titel = StringProperty("")
     beschrijving = StringProperty("")
     afbeelding = StringProperty("")  # Pad naar de afbeelding ("" = geen afbeelding)
+    hoofd_hoogte_deel = NumericProperty(0.35)  # Grootte van de hoofdfoto (zie HOOFD_FORMATEN)
 
     def toon_object(self, obj_id):
         # Haalt het object op uit de database en zet de gegevens op de pagina
@@ -68,11 +79,13 @@ class ObjectDetailScreen(Screen):
         if obj is None:
             return
 
-        self.titel = obj[1]
+        self.titel = voor_titel(obj[1])  # tekens die het titelfont niet heeft worden vervangen
         self.beschrijving = obj[2] or ""
 
         # Toon de afbeelding alleen als het bestand echt bestaat
         self.afbeelding = obj[3] if obj[3] and os.path.exists(obj[3]) else ""
+        # Grootte van de hoofdfoto zoals gekozen in het adminpaneel
+        self.hoofd_hoogte_deel = HOOFD_FORMATEN.get(obj["hoofd_formaat"], 0.35)
 
         # Extra afbeeldingen: midden = onder de beschrijving, links/rechts = in een kolom ernaast
         extra_fotos = self.ids.extra_fotos

@@ -8,6 +8,9 @@ from frontend.screens.admin_panel import AdminPanelScreen  # Importeer de AdminP
 
 from frontend.screens.object_screen import ObjectScreen
 from frontend.screens.object_detail_screen import ObjectDetailScreen  # Detailpagina van één object
+from frontend.fonts import registreer_fonts  # De lettertypes "Titel", "Tekst" en "Klein"
+
+registreer_fonts()  # Moet gebeuren voordat de .kv-bestanden geladen worden
 
 class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft van Kivy App
 

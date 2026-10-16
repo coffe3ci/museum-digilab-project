@@ -29,8 +29,13 @@ class ObjectManager:
                 conn.execute(f"ALTER TABLE object_afbeeldingen ADD COLUMN {kolom} {soort}")
                 conn.commit()
 
-        # De oude instelling per object (vorige versie) wordt niet meer gebruikt
+        # Grootte van de hoofdfoto op de objectpagina: "klein", "normaal", "groot" of "origineel"
         kolommen = [rij["name"] for rij in conn.execute("PRAGMA table_info(objects)")]
+        if "hoofd_formaat" not in kolommen:
+            conn.execute("ALTER TABLE objects ADD COLUMN hoofd_formaat TEXT DEFAULT 'normaal'")
+            conn.commit()
+
+        # De oude instelling per object (vorige versie) wordt niet meer gebruikt
         for kolom in ("extra_breedte", "extra_hoogte"):
             if kolom in kolommen:
                 conn.execute(f"ALTER TABLE objects DROP COLUMN {kolom}")
@@ -82,12 +87,12 @@ class ObjectManager:
         conn.close()
         return rows
 
-    def add_object(self, titel, beschrijving, afbeelding=None):
+    def add_object(self, titel, beschrijving, afbeelding=None, hoofd_formaat="normaal"):
         # Voegt een nieuw object toe aan de database (achteraan) en geeft het nieuwe id terug
         conn = self._verbind()
         cursor = conn.execute(
-            "INSERT INTO objects (titel, beschrijving, afbeelding) VALUES (?, ?, ?)",
-            (titel, beschrijving, afbeelding),
+            "INSERT INTO objects (titel, beschrijving, afbeelding, hoofd_formaat) VALUES (?, ?, ?, ?)",
+            (titel, beschrijving, afbeelding, hoofd_formaat),
         )
         conn.commit()
         conn.close()
@@ -97,18 +102,18 @@ class ObjectManager:
         # Haalt één specifiek object op basis van ID op
         conn = self._verbind()
         row = conn.execute(
-            "SELECT id, titel, beschrijving, afbeelding FROM objects WHERE id = ?",
+            "SELECT id, titel, beschrijving, afbeelding, hoofd_formaat FROM objects WHERE id = ?",
             (obj_id,),
         ).fetchone()
         conn.close()
         return row
 
-    def update_object(self, obj_id, titel, beschrijving, afbeelding=None):
+    def update_object(self, obj_id, titel, beschrijving, afbeelding=None, hoofd_formaat="normaal"):
         # Werkt een bestaand object bij in de database
         conn = self._verbind()
         conn.execute(
-            "UPDATE objects SET titel = ?, beschrijving = ?, afbeelding = ? WHERE id = ?",
-            (titel, beschrijving, afbeelding, obj_id),
+            "UPDATE objects SET titel = ?, beschrijving = ?, afbeelding = ?, hoofd_formaat = ? WHERE id = ?",
+            (titel, beschrijving, afbeelding, hoofd_formaat, obj_id),
         )
         conn.commit()
         conn.close()

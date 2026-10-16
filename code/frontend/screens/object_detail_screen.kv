@@ -59,7 +59,7 @@
 
     Label:
         id: onderschrift
-        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+        font_name: "Klein"
         font_size: "14sp"
         color: 0.45, 0.45, 0.45, 1
         size_hint_y: None
@@ -74,6 +74,7 @@
 # behalve bij hele brede foto's: die worden smaller gemaakt zodat ze op het scherm passen.
 <Schilderij@AnchorLayout>:
     afbeelding: ""
+    hoogte_deel: 0.35    # hoogte van de foto als deel van het scherm (0 = origineel: echte grootte)
 
     anchor_x: "center"
     anchor_y: "center"
@@ -86,9 +87,10 @@
         source: root.afbeelding
         fit_mode: "contain"
         size_hint: None, None
-        # Gewenste hoogte: 35% van het scherm (minstens 1/4). Is de foto dan te breed,
-        # dan wordt hij zo breed als er plaats is en de hoogte past zich aan.
-        width: max(0, min(Window.height * 0.35 * self.image_ratio, root.width - 2 * dp(RAND)))
+        # Gewenste hoogte: het gekozen deel van het scherm (klein/normaal/groot), of bij "origineel"
+        # de echte breedte van de foto. Is de foto te breed, dan wordt hij zo breed als er plaats is
+        # en de hoogte past zich aan (nooit bijgesneden).
+        width: max(0, min(self.texture_size[0] if root.hoogte_deel == 0 else Window.height * root.hoogte_deel * self.image_ratio, root.width - 2 * dp(RAND)))
         height: self.width / self.image_ratio
 
         canvas.before:
@@ -162,13 +164,13 @@
                 # Hoofdfoto in een lijst (alleen als er een afbeelding is)
                 Schilderij:
                     afbeelding: root.afbeelding
+                    hoogte_deel: root.hoofd_hoogte_deel
 
                 # Titel
                 Label:
                     text: root.titel
-                    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                    font_name: "Titel"
                     font_size: "30sp"
-                    bold: True
                     color: 125/255, 67/255, 53/255, 1
                     size_hint_y: None
                     height: self.texture_size[1] + dp(10)
@@ -204,7 +206,7 @@
 
                         Label:
                             text: root.beschrijving
-                            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                            font_name: "Tekst"
                             font_size: "18sp"
                             line_height: 1.3   # iets meer ruimte tussen de regels
                             color: 0.2, 0.2, 0.2, 1

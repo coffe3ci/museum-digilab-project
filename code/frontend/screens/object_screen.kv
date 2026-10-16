@@ -67,6 +67,29 @@
                 size: self.size
                 radius: [0, 0, 12, 12]   # linksboven, rechtsboven, rechtsonder, linksonder
 
+    # Volgnummer linksboven in een rond donker rondje
+    Label:
+        text: root.nummer
+        # Standaard lettertype (Roboto): dat centreert cijfers netjes in het rondje
+        font_size: "14sp"
+        bold: True
+        color: 1, 1, 1, 1
+        size_hint: None, None
+        size: "30dp", "30dp"
+        pos_hint: {"x": 0.03, "top": 0.97}
+        halign: "center"
+        valign: "middle"
+        text_size: self.size
+
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.55
+            RoundedRectangle:
+                # Rondje iets naar links t.o.v. de tekst, zodat het nummer optisch in het midden staat
+                pos: self.x - dp(1), self.y
+                size: self.size
+                radius: [15]
+
 
 <ObjectScreen>:
     FloatLayout:

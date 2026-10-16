@@ -21,6 +21,7 @@ class ObjectKnop(ButtonBehavior, FloatLayout):
     # Een knop met een afbeelding die de hele knop vult, met afgeronde hoeken.
     # Hoe hij eruitziet staat in object_screen.kv (<ObjectKnop>).
     titel = StringProperty("")
+    nummer = StringProperty("")  # Volgnummer linksboven in de knop (1, 2, 3, ...)
     afbeelding = StringProperty("")  # Pad naar de afbeelding
     textuur = ObjectProperty(None, allownone=True)  # De geladen afbeelding (volledig)
     uitsnede = ObjectProperty(None, allownone=True)  # Het bijgesneden deel dat getoond wordt
@@ -83,6 +84,7 @@ class ObjectScreen(Screen):
         for obj in pagina_objecten:
             knop = ObjectKnop()
             knop.titel = obj[1]
+            knop.nummer = str(obj["id"])  # Het id uit de database is het nummer (aanpasbaar in het adminpaneel)
 
             # Toon de afbeelding alleen als het bestand echt bestaat
             if obj[3] and os.path.exists(obj[3]):

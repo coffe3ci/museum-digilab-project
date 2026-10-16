@@ -6,6 +6,7 @@
     object_naam: ""
     object_id: 0
     afbeelding: ""
+    nummer: ""
 
     orientation: "horizontal"
     size_hint_y: None
@@ -20,6 +21,27 @@
             pos: self.pos
             size: self.size
             radius: [dp(10)]
+
+    # NUMMER (zelfde rondje als op de objectenwand)
+    Label:
+        text: root.nummer
+        font_size: "14sp"
+        bold: True
+        color: 1, 1, 1, 1
+        size_hint: None, None
+        size: "30dp", "30dp"
+        pos_hint: {"center_y": 0.5}
+        halign: "center"
+        valign: "middle"
+        text_size: self.size
+
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.55
+            RoundedRectangle:
+                pos: self.x - dp(1), self.y
+                size: self.size
+                radius: [15]
 
     # FOTO VOORBEELD
     Image:
@@ -133,13 +155,32 @@
     background: ""
     background_color: 244/255, 239/255, 230/255, 1
     size_hint: 0.6, None
-    height: "480dp"
+    height: "560dp"
     auto_dismiss: False
 
     BoxLayout:
         orientation: "vertical"
         padding: "10dp"
         spacing: "8dp"
+
+        Label:
+            text: "Nummer (plek op de objectenwand)"
+            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+            font_size: "13sp"
+            bold: True
+            color: 0.3, 0.3, 0.3, 1
+            size_hint_y: None
+            height: "20dp"
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+        FormulierVeld:
+            id: nummer
+            multiline: False
+            input_filter: "int"   # alleen cijfers
+            size_hint_y: None
+            height: "46dp"
 
         Label:
             text: "Titel"

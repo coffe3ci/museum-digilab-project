@@ -22,6 +22,7 @@ class AdminPanelScreen(Screen):
             item = Factory.ObjectItem()
             item.object_naam = f"{obj[1]}, {obj[2]}"
             item.object_id = obj["id"]
+            item.nummer = str(obj["id"])  # Het id is ook het nummer op de objectenwand
             item.afbeelding = obj[3] or ""  # obj[3] = afbeelding (None wordt "")
             lijst.add_widget(item)
 
@@ -32,6 +33,7 @@ class AdminPanelScreen(Screen):
 
     def object_toevoegen(self):
         formulier = Factory.ObjectFormulier() # Leeg formulier (obj_id blijft 0 = nieuw object)
+        formulier.ids.nummer.text = str(len(ObjectManager().get_all_objects()) + 1) # Standaard achteraan
         formulier.open()
 
     def object_bewerken(self, obj_id):
@@ -41,7 +43,8 @@ class AdminPanelScreen(Screen):
 
         formulier = Factory.ObjectFormulier()
         formulier.obj_id = obj_id # Onthoudt welk object bewerkt wordt
-        formulier.ids.titel.text = obj[1] # Vult de huidige gegevens in
+        formulier.ids.nummer.text = str(obj["id"]) # Vult de huidige gegevens in
+        formulier.ids.titel.text = obj[1]
         formulier.ids.beschrijving.text = obj[2]
         formulier.afbeelding = obj[3] or ""
         formulier.open()
@@ -55,12 +58,23 @@ class AdminPanelScreen(Screen):
             formulier.ids.foutmelding.text = "Vul een titel en beschrijving in."
             return
 
+        # Het nummer bepaalt de plek op de objectenwand
+        nummer_tekst = formulier.ids.nummer.text.strip()
+        if not nummer_tekst.isdigit() or int(nummer_tekst) == 0:
+            formulier.ids.foutmelding.text = "Vul een geldig nummer in."
+            return
+        nummer = int(nummer_tekst)
+
         afbeelding = formulier.afbeelding or None  # "" wordt None (leeg) in de database
 
         if formulier.obj_id == 0:
-            ObjectManager().add_object(titel, beschrijving, afbeelding) # Nieuw object
+            obj_id = ObjectManager().add_object(titel, beschrijving, afbeelding) # Nieuw object (achteraan)
         else:
-            ObjectManager().update_object(formulier.obj_id, titel, beschrijving, afbeelding) # Bestaand object
+            obj_id = formulier.obj_id
+            ObjectManager().update_object(obj_id, titel, beschrijving, afbeelding) # Bestaand object
+
+        # Zet het object op het gekozen nummer; het object dat daar stond ruilt van plek
+        ObjectManager().verander_nummer(obj_id, nummer)
 
         formulier.dismiss()
         self.laad_objecten() # Ververst de lijst

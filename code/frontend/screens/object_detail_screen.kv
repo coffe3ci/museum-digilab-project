@@ -1,3 +1,8 @@
+#:import Window kivy.core.window.Window
+# Maten van de lijst rond de hoofdfoto (in dp)
+#:set PASSE_PARTOUT 18
+#:set RAND 34
+
 # Extra afbeelding onder de beschrijving: hele foto zichtbaar, in het midden,
 # met afgeronde hoeken en een lichte schaduw.
 # max_breedte / max_hoogte (in dp) komen uit het adminpaneel; 0 = geen limiet.
@@ -63,6 +68,73 @@
         text_size: self.width, None
 
 
+# De hoofdfoto bovenaan de objectpagina, als een schilderij:
+# donkere houten lijst met een gouden randje, een crème passe-partout en de hele foto erin.
+# De foto wordt nooit bijgesneden. Hij is minstens 1/4 van het scherm hoog (meestal 35%),
+# behalve bij hele brede foto's: die worden smaller gemaakt zodat ze op het scherm passen.
+<Schilderij@AnchorLayout>:
+    afbeelding: ""
+
+    anchor_x: "center"
+    anchor_y: "center"
+    size_hint_y: None
+    height: (foto.height + 2 * dp(RAND) + dp(10)) if self.afbeelding else 0   # + ruimte voor de schaduw
+    opacity: 1 if self.afbeelding else 0
+
+    Image:
+        id: foto
+        source: root.afbeelding
+        fit_mode: "contain"
+        size_hint: None, None
+        # Gewenste hoogte: 35% van het scherm (minstens 1/4). Is de foto dan te breed,
+        # dan wordt hij zo breed als er plaats is en de hoogte past zich aan.
+        width: max(0, min(Window.height * 0.35 * self.image_ratio, root.width - 2 * dp(RAND)))
+        height: self.width / self.image_ratio
+
+        canvas.before:
+            # Schaduw achter het schilderij
+            Color:
+                rgba: 0, 0, 0, 0.18
+            Rectangle:
+                pos: self.x - dp(RAND) + dp(5), self.y - dp(RAND) - dp(6)
+                size: self.width + 2 * dp(RAND), self.height + 2 * dp(RAND)
+
+            # Houten lijst (donkerbruin)
+            Color:
+                rgba: 92/255, 58/255, 36/255, 1
+            Rectangle:
+                pos: self.x - dp(RAND), self.y - dp(RAND)
+                size: self.width + 2 * dp(RAND), self.height + 2 * dp(RAND)
+
+            # Lichtere rand aan de buitenkant van de lijst (geeft diepte)
+            Color:
+                rgba: 140/255, 96/255, 60/255, 1
+            Line:
+                rectangle: (self.x - dp(RAND) + dp(2), self.y - dp(RAND) + dp(2), self.width + 2 * dp(RAND) - dp(4), self.height + 2 * dp(RAND) - dp(4))
+                width: 1.2
+
+            # Goud randje aan de binnenkant van de lijst
+            Color:
+                rgba: 196/255, 160/255, 92/255, 1
+            Rectangle:
+                pos: self.x - dp(PASSE_PARTOUT) - dp(3), self.y - dp(PASSE_PARTOUT) - dp(3)
+                size: self.width + 2 * dp(PASSE_PARTOUT) + dp(6), self.height + 2 * dp(PASSE_PARTOUT) + dp(6)
+
+            # Passe-partout (crème vlak rond de foto)
+            Color:
+                rgba: 250/255, 246/255, 238/255, 1
+            Rectangle:
+                pos: self.x - dp(PASSE_PARTOUT), self.y - dp(PASSE_PARTOUT)
+                size: self.width + 2 * dp(PASSE_PARTOUT), self.height + 2 * dp(PASSE_PARTOUT)
+
+            # Dun schaduwlijntje direct rond de foto
+            Color:
+                rgba: 0, 0, 0, 0.15
+            Line:
+                rectangle: (self.x - dp(1), self.y - dp(1), self.width + dp(2), self.height + dp(2))
+                width: 1
+
+
 <ObjectDetailScreen>:
     FloatLayout:
         # 1. Achtergrond (Beige/Crème achtergrond)
@@ -73,37 +145,35 @@
                 pos: self.pos
                 size: self.size
 
-        # 2. Afbeelding over de hele bovenkant van de pagina (randen worden bijgesneden)
-        Image:
-            source: root.afbeelding
-            fit_mode: "cover"
-            opacity: 1 if root.afbeelding else 0
-            size_hint: 1, 0.4
-            pos_hint: {"x": 0, "top": 1}
+        # 2. De hele pagina scrollt: schilderij, titel, beschrijving en extra foto's
+        ScrollView:
+            id: tekst_scroll
+            do_scroll_x: False
+            bar_width: "4dp"
 
-        # 3. Tekst: onder de afbeelding, of bovenaan als er geen afbeelding is
-        BoxLayout:
-            orientation: "vertical"
-            size_hint: 0.8, (0.54 if root.afbeelding else 0.82)
-            pos_hint: {"center_x": 0.5, "top": 0.57 if root.afbeelding else 0.9}
-            spacing: "15dp"
-
-            # Titel
-            Label:
-                text: root.titel
-                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-                font_size: "30sp"
-                bold: True
-                color: 125/255, 67/255, 53/255, 1
+            BoxLayout:
+                orientation: "vertical"
                 size_hint_y: None
-                height: self.texture_size[1] + dp(10)
-                halign: "center"
-                text_size: self.width, None
+                height: self.minimum_height
+                spacing: "20dp"
+                # 10% ruimte links en rechts; bovenaan ruimte voor de terug-knop
+                padding: [self.width * 0.1, dp(70), self.width * 0.1, dp(25)]
 
-            # Beschrijving + extra afbeeldingen (samen scrollbaar)
-            ScrollView:
-                id: tekst_scroll
-                do_scroll_x: False
+                # Hoofdfoto in een lijst (alleen als er een afbeelding is)
+                Schilderij:
+                    afbeelding: root.afbeelding
+
+                # Titel
+                Label:
+                    text: root.titel
+                    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                    font_size: "30sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+                    size_hint_y: None
+                    height: self.texture_size[1] + dp(10)
+                    halign: "center"
+                    text_size: self.width, None
 
                 # Drie kolommen naast elkaar: links-foto's | beschrijving (+ midden-foto's) | rechts-foto's.
                 # Een zijkolom zonder foto's is 0 breed, dan krijgt de beschrijving de hele breedte.
@@ -111,7 +181,7 @@
                     id: rij
                     orientation: "horizontal"
                     size_hint_y: None
-                    height: max(kolom_links.height, midden.height, kolom_rechts.height) + dp(25)   # + ruimte onderaan
+                    height: max(kolom_links.height, midden.height, kolom_rechts.height)
 
                     # Linkerkolom (ZijKolom staat in object_detail_screen.py)
                     ZijKolom:
@@ -160,7 +230,7 @@
                         height: 0
                         pos_hint: {"top": 1}
 
-        # 4. Terug-knop (Ronde knop linksboven, ligt bovenop de afbeelding)
+        # 3. Terug-knop (Ronde knop linksboven, blijft altijd staan)
         Button:
             text: "<"
             font_size: "22sp"

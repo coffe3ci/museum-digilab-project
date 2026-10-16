@@ -26,8 +26,7 @@
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [22]  # Tam yuvarlak buton için yüksekliğin yarısı
-
+                    radius: [22] 
         # 3. Logo
         Image:
             source: "assets/objects_img/logo/management.png"
@@ -91,7 +90,7 @@
             valign: "middle"
             text_size: self.size
 
-        # 8. Wachtwoord Invoerveld (Yuvarlatılmış Kenarlar)
+       
         TextInput:
             id: wachtwoord_veld
             password: True
@@ -103,30 +102,30 @@
             height: "48dp"
             pos_hint: {"center_x": 0.5, "center_y": 0.34}
             padding: ["16dp", "14dp"]
-            # Kivy'nin varsayılan arka plan görsellerini ve renklerini sıfırlıyoruz
+      
             background_normal: ""
             background_active: ""
-            background_color: 0, 0, 0, 0  # Tamamen şeffaf yapıyoruz 
+            background_color: 0, 0, 0, 0  
             foreground_color: 0.1, 0.1, 0.1, 1
             cursor_color: 125/255, 67/255, 53/255, 1
 
-            # Yuvarlatılmış kutu çizimi:
+            
             canvas.before:
-                # 1. Arka plan rengi (Beyaz)
+                
                 Color:
                     rgba: 1, 1, 1, 1
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [12]  # Yuvarlama yarıçapı
-                # 2. İsteğe Bağlı: Odaklandığında (Focus) İnce Kenarlık Çizgisi
+                    radius: [12]  
+               
                 Color:
                     rgba: (125/255, 67/255, 53/255, 1) if self.focus else (210/255, 210/255, 210/255, 1)
                 Line:
                     rounded_rectangle: (self.x, self.y, self.width, self.height, 12)
                     width: 1.2
 
-        # 9. Inloggen Knop (Yuvarlatılmış Kenarlar)
+        # 9. Inloggen Knop 
         Button:
             id: inloggen_knop
             text: "Inloggen"

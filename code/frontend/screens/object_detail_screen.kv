@@ -1,3 +1,68 @@
+# Extra afbeelding onder de beschrijving: hele foto zichtbaar, in het midden,
+# met afgeronde hoeken en een lichte schaduw.
+# max_breedte / max_hoogte (in dp) komen uit het adminpaneel; 0 = geen limiet.
+# origineel = True: de foto wordt op zijn echte grootte (in pixels) getoond.
+<ExtraFoto@Image>:
+    max_breedte: 0
+    max_hoogte: 0
+    origineel: False
+
+    fit_mode: "contain"
+    size_hint: None, None
+    pos_hint: {"center_x": 0.5}
+    # Breedte = de kleinste van: breedte van het tekstblok, max. breedte (of de echte breedte
+    # bij "origineel"), en de breedte die bij de max. hoogte hoort.
+    # Zo past de foto binnen alle limieten zonder uit te rekken, en nooit breder dan de tekst/kolom.
+    width: min(self.parent.width if self.parent else 0, self.texture_size[0] if self.origineel else (dp(self.max_breedte) if self.max_breedte else float("inf")), dp(self.max_hoogte) * self.image_ratio if self.max_hoogte else float("inf"))
+    height: self.width / self.image_ratio   # hoogte volgt de vorm van de foto
+
+    canvas.before:
+        # Lichte schaduw iets onder de foto
+        Color:
+            rgba: 0, 0, 0, 0.12
+        RoundedRectangle:
+            pos: self.x + dp(2), self.y - dp(3)
+            size: self.size
+            radius: [14]
+
+        # Afgeronde hoeken via een sjabloon (stencil)
+        StencilPush
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [14]
+        StencilUse
+
+    canvas.after:
+        StencilUnUse
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [14]
+        StencilPop
+
+
+# Eén extra afbeelding met de titel eronder (als onderschrift)
+<ExtraFotoBlok@BoxLayout>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+    spacing: "6dp"
+
+    ExtraFoto:
+        id: foto
+
+    Label:
+        id: onderschrift
+        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+        font_size: "14sp"
+        color: 0.45, 0.45, 0.45, 1
+        size_hint_y: None
+        height: self.texture_size[1] if self.text else 0   # geen ruimte als er geen titel is
+        halign: "center"
+        text_size: self.width, None
+
+
 <ObjectDetailScreen>:
     FloatLayout:
         # 1. Achtergrond (Beige/Crème achtergrond)
@@ -35,22 +100,65 @@
                 halign: "center"
                 text_size: self.width, None
 
-            # Beschrijving (scrollbaar bij lange teksten)
+            # Beschrijving + extra afbeeldingen (samen scrollbaar)
             ScrollView:
                 id: tekst_scroll
                 do_scroll_x: False
 
-                Label:
-                    text: root.beschrijving
-                    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-                    font_size: "18sp"
-                    line_height: 1.3   # iets meer ruimte tussen de regels
-                    color: 0.2, 0.2, 0.2, 1
+                # Drie kolommen naast elkaar: links-foto's | beschrijving (+ midden-foto's) | rechts-foto's.
+                # Een zijkolom zonder foto's is 0 breed, dan krijgt de beschrijving de hele breedte.
+                BoxLayout:
+                    id: rij
+                    orientation: "horizontal"
                     size_hint_y: None
-                    height: self.texture_size[1]
-                    halign: "left"
-                    valign: "top"
-                    text_size: self.width, None
+                    height: max(kolom_links.height, midden.height, kolom_rechts.height) + dp(25)   # + ruimte onderaan
+
+                    # Linkerkolom (ZijKolom staat in object_detail_screen.py)
+                    ZijKolom:
+                        id: kolom_links
+                        size_hint: None, None
+                        width: rij.width * 0.28 if self.children else 0
+                        height: 0
+                        pos_hint: {"top": 1}
+
+                    # Middenkolom: beschrijving met daaronder de midden-foto's
+                    BoxLayout:
+                        id: midden
+                        orientation: "vertical"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        pos_hint: {"top": 1}
+                        spacing: "25dp"
+                        # Ruimte tussen de tekst en een zijkolom (alleen als die zijkolom foto's heeft)
+                        padding: [dp(20) if kolom_links.children else 0, 0, dp(20) if kolom_rechts.children else 0, 0]
+
+                        Label:
+                            text: root.beschrijving
+                            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                            font_size: "18sp"
+                            line_height: 1.3   # iets meer ruimte tussen de regels
+                            color: 0.2, 0.2, 0.2, 1
+                            size_hint_y: None
+                            height: self.texture_size[1]
+                            halign: "left"
+                            valign: "top"
+                            text_size: self.width, None
+
+                        # Midden-foto's onder elkaar (worden in object_detail_screen.py toegevoegd)
+                        BoxLayout:
+                            id: extra_fotos
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: "20dp"
+
+                    # Rechterkolom
+                    ZijKolom:
+                        id: kolom_rechts
+                        size_hint: None, None
+                        width: rij.width * 0.28 if self.children else 0
+                        height: 0
+                        pos_hint: {"top": 1}
 
         # 4. Terug-knop (Ronde knop linksboven, ligt bovenop de afbeelding)
         Button:

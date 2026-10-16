@@ -1,3 +1,5 @@
+#:import Window kivy.core.window.Window
+
 # ============================================================
 # OBJECT ITEM
 # ============================================================
@@ -111,17 +113,21 @@
 
 
 # ============================================================
-# INVOERVELD (gebruikt in het objectformulier)
+# BOUWSTENEN VOOR DE FORMULIEREN (compact en overal dezelfde stijl)
 # ============================================================
 
+# Invoerveld
 <FormulierVeld@TextInput>:
     font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-    font_size: "16sp"
-    padding: ["14dp", "12dp"]
+    font_size: "14sp"
+    padding: ["10dp", "9dp"]
+    size_hint_y: None
+    height: "38dp"
     background_normal: ""
     background_active: ""
     background_color: 0, 0, 0, 0
     foreground_color: 0.1, 0.1, 0.1, 1
+    hint_text_color: 0.6, 0.6, 0.6, 1
     cursor_color: 125/255, 67/255, 53/255, 1
 
     canvas.before:
@@ -130,12 +136,420 @@
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [12]
+            radius: [8]
         Color:
-            rgba: (125/255, 67/255, 53/255, 1) if self.focus else (210/255, 210/255, 210/255, 1)
+            rgba: (125/255, 67/255, 53/255, 1) if self.focus else (215/255, 208/255, 196/255, 1)
         Line:
-            rounded_rectangle: (self.x, self.y, self.width, self.height, 12)
-            width: 1.2
+            rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
+            width: 1.1
+
+# Klein grijs kopje boven een veld
+<VeldLabel@Label>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "12sp"
+    bold: True
+    color: 0.4, 0.4, 0.4, 1
+    size_hint_y: None
+    height: "18dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.size
+
+# Bruin kopje van een blok (bv. "Grootte")
+<BlokKop@Label>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "14sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint_y: None
+    height: "20dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.size
+
+# Wit blok met afgeronde hoeken om velden te groeperen
+<Kaart@BoxLayout>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+    padding: "12dp"
+    spacing: "6dp"
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 0.7
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+
+# Lichte knop (beige)
+<ZachteKnop@Button>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "13sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint_y: None
+    height: "38dp"
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+
+# Hoofdknop (bruin), bv. "Opslaan"
+<HoofdKnop@Button>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "14sp"
+    bold: True
+    color: 1, 1, 1, 1
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+# Rode knop, bv. "Verwijderen"
+<RodeKnop@Button>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "14sp"
+    bold: True
+    color: 1, 1, 1, 1
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (140/255, 35/255, 25/255, 1) if self.state == "down" else (180/255, 50/255, 40/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+# Rode foutmelding onderaan een formulier
+<FoutLabel@Label>:
+    text: ""
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "12sp"
+    bold: True
+    color: 0.75, 0.20, 0.15, 1
+    size_hint_y: None
+    height: "18dp" if self.text else 0
+
+# Keuzes in de dropdown "Positie"
+<PositieOptie@SpinnerOption>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "13sp"
+    color: 125/255, 67/255, 53/255, 1
+    height: "34dp"
+    background_normal: ""
+    background_down: ""
+    background_color: (225/255, 215/255, 202/255, 1) if self.state == "down" else (1, 1, 1, 1)
+
+
+# ============================================================
+# EXTRA AFBEELDINGEN: titel-knop en lege melding (in het objectformulier)
+# ============================================================
+
+# Eén regel in de lijst met extra afbeeldingen: alleen de titel, klik = bewerken
+<ExtraTitelKnop@Button>:
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "13sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint_y: None
+    height: "30dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.width - dp(20), None
+    shorten: True   # te lange titels worden afgekort met "..."
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(7)]
+
+<ExtraLeegLabel@Label>:
+    text: "Nog geen extra afbeeldingen"
+    font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    font_size: "12sp"
+    color: 0.55, 0.55, 0.55, 1
+    size_hint_y: None
+    height: "30dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.size
+
+
+# ============================================================
+# EXTRA AFBEELDING (pop-up voor één extra afbeelding)
+# Links een groot voorbeeld van de foto, rechts de instellingen in blokken.
+# ============================================================
+
+<ExtraAfbeeldingFormulier@Popup>:
+    formulier: None   # het objectformulier waar deze afbeelding bij hoort
+    index: -1         # -1 = nieuwe afbeelding, anders de plek in de lijst
+    afbeelding: ""
+
+    title: "Extra afbeelding toevoegen" if self.index < 0 else "Extra afbeelding bewerken"
+    title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(720))
+    height: min(Window.height * 0.9, dp(480))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "10dp"
+
+        BoxLayout:
+            spacing: "14dp"
+
+            # ---------- Links: de foto ----------
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.45
+                spacing: "8dp"
+
+                # Voorbeeld van de foto op een beige vlak
+                FloatLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 228/255, 222/255, 210/255, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [12]
+
+                    Image:
+                        source: root.afbeelding
+                        fit_mode: "contain"
+                        opacity: 1 if root.afbeelding else 0
+                        size_hint: 0.92, 0.92
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                    Label:
+                        text: "Nog geen afbeelding gekozen"
+                        font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                        font_size: "13sp"
+                        color: 0.5, 0.5, 0.5, 1
+                        opacity: 0 if root.afbeelding else 1
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                ZachteKnop:
+                    text: "Kies afbeelding" if not root.afbeelding else "Andere afbeelding kiezen"
+                    on_release: app.root.get_screen("admin_panel").open_kiezer(root, "extra")
+
+            # ---------- Rechts: de instellingen (scrollbaar als het niet past) ----------
+            ScrollView:
+                do_scroll_x: False
+                bar_width: "4dp"
+
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: "10dp"
+
+                    # Titel + vinkje
+                    Kaart:
+                        BlokKop:
+                            text: "Titel"
+
+                        FormulierVeld:
+                            id: titel
+                            hint_text: "Naam van de afbeelding"
+                            multiline: False
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: "26dp"
+                            spacing: "4dp"
+
+                            CheckBox:
+                                id: titel_zichtbaar
+                                active: True   # standaard aan
+                                size_hint_x: None
+                                width: "26dp"
+                                color: 125/255, 67/255, 53/255, 1
+
+                            Button:
+                                text: "Titel tonen onder de foto"
+                                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                                font_size: "12sp"
+                                color: 0.35, 0.35, 0.35, 1
+                                halign: "left"
+                                valign: "middle"
+                                text_size: self.size
+                                background_normal: ""
+                                background_down: ""
+                                background_color: 0, 0, 0, 0
+                                # Klikken op de tekst zet het vinkje ook om
+                                on_release: titel_zichtbaar.active = not titel_zichtbaar.active
+
+                    # Maximale grootte
+                    Kaart:
+                        BlokKop:
+                            text: "Grootte"
+
+                        # Simpele keuze, net als bij de positie
+                        Spinner:
+                            id: formaat
+                            text: "Normaal"   # standaard
+                            values: ["Klein", "Normaal", "Groot", "Origineel"]
+                            option_cls: "PositieOptie"
+                            size_hint_y: None
+                            height: "38dp"
+                            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                            font_size: "14sp"
+                            bold: True
+                            color: 125/255, 67/255, 53/255, 1
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
+                        Label:
+                            text: "Klein 150  |  Normaal 250  |  Groot 350  |  Origineel = echte grootte"
+                            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                            font_size: "11sp"
+                            color: 0.55, 0.55, 0.55, 1
+                            size_hint_y: None
+                            height: "16dp"
+                            halign: "left"
+                            valign: "middle"
+                            text_size: self.size
+
+                        VeldLabel:
+                            text: "Eigen grootte in dp (optioneel, gaat voor de keuze hierboven)"
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: "38dp"
+                            spacing: "6dp"
+
+                            FormulierVeld:
+                                id: breedte
+                                hint_text: "Breedte"
+                                multiline: False
+                                input_filter: "int"   # alleen cijfers
+
+                            Label:
+                                text: "x"
+                                font_size: "14sp"
+                                color: 0.5, 0.5, 0.5, 1
+                                size_hint_x: None
+                                width: "14dp"
+
+                            FormulierVeld:
+                                id: hoogte
+                                hint_text: "Hoogte"
+                                multiline: False
+                                input_filter: "int"   # alleen cijfers
+
+                    # Positie op de objectpagina
+                    Kaart:
+                        BlokKop:
+                            text: "Positie op de pagina"
+
+                        # Links/rechts = naast de beschrijving, midden = eronder
+                        Spinner:
+                            id: positie
+                            text: "Midden"   # standaard
+                            values: ["Links", "Midden", "Rechts"]
+                            option_cls: "PositieOptie"
+                            size_hint_y: None
+                            height: "38dp"
+                            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
+                            font_size: "14sp"
+                            bold: True
+                            color: 125/255, 67/255, 53/255, 1
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
+                        # Hoogte vanaf boven: alleen voor links en rechts (bij midden verborgen)
+                        VeldLabel:
+                            text: "Hoogte vanaf boven in dp (leeg = automatisch onder elkaar)"
+                            height: "18dp" if positie.text != "Midden" else 0
+                            opacity: 1 if positie.text != "Midden" else 0
+
+                        FormulierVeld:
+                            id: positie_hoogte
+                            hint_text: "bv. 200"
+                            multiline: False
+                            input_filter: "int"   # alleen cijfers
+                            height: "38dp" if positie.text != "Midden" else 0
+                            opacity: 1 if positie.text != "Midden" else 0
+                            disabled: positie.text == "Midden"
+
+        FoutLabel:
+            id: foutmelding
+
+        # ---------- Knoppen onderaan ----------
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            # Alleen zichtbaar bij een bestaande afbeelding
+            RodeKnop:
+                text: "Verwijderen"
+                size_hint_x: None
+                width: "130dp"
+                opacity: 1 if root.index >= 0 else 0
+                disabled: root.index < 0
+                on_release: app.root.get_screen("admin_panel").extra_verwijderen(root)
+
+            Widget:   # lege ruimte, duwt de andere knoppen naar rechts
+
+            ZachteKnop:
+                text: "Annuleren"
+                size_hint: None, None
+                size: "120dp", "42dp"
+                font_size: "14sp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                size_hint_x: None
+                width: "120dp"
+                on_release: app.root.get_screen("admin_panel").extra_opslaan(root)
 
 
 # ============================================================
@@ -146,173 +560,156 @@
     obj_id: 0    # 0 = nieuw object, anders het id van het object dat bewerkt wordt
 
     afbeelding: ""
+    extra_afbeeldingen: []   # extra afbeeldingen (dicts met pad, titel, breedte, hoogte, ...)
 
     title: "Object toevoegen" if self.obj_id == 0 else "Object bewerken"
     title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-    title_size: "20sp"
+    title_size: "18sp"
     title_color: 0.15, 0.15, 0.15, 1
     separator_color: 125/255, 67/255, 53/255, 1
     background: ""
     background_color: 244/255, 239/255, 230/255, 1
-    size_hint: 0.6, None
-    height: "560dp"
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(560))
+    height: min(Window.height * 0.9, dp(540))
     auto_dismiss: False
 
     BoxLayout:
         orientation: "vertical"
-        padding: "10dp"
+        padding: "6dp"
         spacing: "8dp"
 
-        Label:
-            text: "Nummer (plek op de objectenwand)"
-            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-            font_size: "13sp"
-            bold: True
-            color: 0.3, 0.3, 0.3, 1
-            size_hint_y: None
-            height: "20dp"
-            halign: "left"
-            valign: "middle"
-            text_size: self.size
+        # Alle velden in een scrollgebied, zodat het formulier klein blijft
+        ScrollView:
+            do_scroll_x: False
+            bar_width: "4dp"
 
-        FormulierVeld:
-            id: nummer
-            multiline: False
-            input_filter: "int"   # alleen cijfers
-            size_hint_y: None
-            height: "46dp"
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
 
-        Label:
-            text: "Titel"
-            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-            font_size: "13sp"
-            bold: True
-            color: 0.3, 0.3, 0.3, 1
-            size_hint_y: None
-            height: "20dp"
-            halign: "left"
-            valign: "middle"
-            text_size: self.size
+                # Nummer en titel naast elkaar
+                Kaart:
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "56dp"
+                        spacing: "10dp"
 
-        FormulierVeld:
-            id: titel
-            multiline: False
-            size_hint_y: None
-            height: "46dp"
+                        BoxLayout:
+                            orientation: "vertical"
+                            size_hint_x: None
+                            width: "80dp"
+                            spacing: "0dp"
 
-        Label:
-            text: "Beschrijving"
-            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-            font_size: "13sp"
-            bold: True
-            color: 0.3, 0.3, 0.3, 1
-            size_hint_y: None
-            height: "20dp"
-            halign: "left"
-            valign: "middle"
-            text_size: self.size
+                            VeldLabel:
+                                text: "Nummer"
 
-        FormulierVeld:
-            id: beschrijving
-    
-        Label:
-            text: "Afbeelding"
-            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-            font_size: "13sp"
-            bold: True
-            color: 0.3, 0.3, 0.3, 1
-            size_hint_y: None
-            height: "20dp"
-            halign: "left"
-            valign: "middle"
-            text_size: self.size
+                            FormulierVeld:
+                                id: nummer
+                                multiline: False
+                                input_filter: "int"   # alleen cijfers (plek op de objectenwand)
 
+                        BoxLayout:
+                            orientation: "vertical"
+                            spacing: "0dp"
+
+                            VeldLabel:
+                                text: "Titel"
+
+                            FormulierVeld:
+                                id: titel
+                                multiline: False
+
+                    VeldLabel:
+                        text: "Beschrijving"
+
+                    FormulierVeld:
+                        id: beschrijving
+                        height: "90dp"
+
+                # Hoofdafbeelding: klein voorbeeld + knoppen op één regel
+                Kaart:
+                    BlokKop:
+                        text: "Afbeelding"
+
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "48dp"
+                        spacing: "8dp"
+
+                        Image:
+                            source: root.afbeelding
+                            size_hint_x: None
+                            width: "48dp"
+                            fit_mode: "contain"
+                            opacity: 1 if root.afbeelding else 0   # onzichtbaar als er geen afbeelding is
+                            canvas.before:
+                                Color:
+                                    rgba: 228/255, 222/255, 210/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [6]
+
+                        ZachteKnop:
+                            text: "Kies afbeelding"
+                            pos_hint: {"center_y": 0.5}
+                            on_release: app.root.get_screen("admin_panel").kies_afbeelding(root)
+
+                        ZachteKnop:
+                            text: "Verwijder"
+                            size_hint_x: None
+                            width: "90dp"
+                            pos_hint: {"center_y": 0.5}
+                            on_release: root.afbeelding = ""
+
+                # Extra afbeeldingen: alleen de titels; klik op een titel om hem te bewerken
+                Kaart:
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "30dp"
+                        spacing: "8dp"
+
+                        BlokKop:
+                            text: "Extra afbeeldingen"
+                            height: "30dp"
+
+                        ZachteKnop:
+                            text: "+ Toevoegen"
+                            size_hint_x: None
+                            width: "110dp"
+                            height: "30dp"
+                            on_release: app.root.get_screen("admin_panel").open_extra_formulier(root, -1)
+
+                    BoxLayout:
+                        id: extra_lijst
+                        orientation: "vertical"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: "5dp"
+                        # De titel-knoppen worden in admin_panel.py aangemaakt (toon_extra_afbeeldingen)
+
+        FoutLabel:
+            id: foutmelding
+
+        # Knoppen onderaan (altijd zichtbaar, scrollen niet mee)
         BoxLayout:
             size_hint_y: None
-            height: "70dp"
+            height: "42dp"
             spacing: "10dp"
 
-            Image:
-                source: root.afbeelding
-                size_hint_x: None
-                width: "70dp"
-                fit_mode: "contain"
-                opacity: 1 if root.afbeelding else 0   # onzichtbaar als er geen afbeelding is
-
-            Button:
-                text: "Kies afbeelding"
-                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-                font_size: "14sp"
-                bold: True
-                color: 125/255, 67/255, 53/255, 1
-                background_normal: ""
-                background_down: ""
-                background_color: 232/255, 224/255, 212/255, 1
-                on_release: app.root.get_screen("admin_panel").kies_afbeelding(root)
-
-            Button:
-                text: "Verwijder"
-                size_hint_x: None
-                width: "90dp"
-                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-                font_size: "14sp"
-                bold: True
-                color: 125/255, 67/255, 53/255, 1
-                background_normal: ""
-                background_down: ""
-                background_color: 232/255, 224/255, 212/255, 1
-                on_release: root.afbeelding = ""
-
-        Label:
-            id: foutmelding
-            text: ""
-            font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-            font_size: "13sp"
-            bold: True
-            color: 0.75, 0.20, 0.15, 1
-            size_hint_y: None
-            height: "20dp"
-
-        BoxLayout:
-            size_hint_y: None
-            height: "48dp"
-            spacing: "12dp"
-
-            Button:
+            ZachteKnop:
                 text: "Annuleren"
-                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-                font_size: "15sp"
-                bold: True
-                color: 125/255, 67/255, 53/255, 1
-                background_normal: ""
-                background_down: ""
-                background_color: 0, 0, 0, 0
+                height: "42dp"
+                font_size: "14sp"
                 on_release: root.dismiss()
-                canvas.before:
-                    Color:
-                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [12]
 
-            Button:
+            HoofdKnop:
                 text: "Opslaan"
-                font_name: "assets/fonts/Chalet NewYorkNineteenEighty.otf"
-                font_size: "15sp"
-                bold: True
-                color: 1, 1, 1, 1
-                background_normal: ""
-                background_down: ""
-                background_color: 0, 0, 0, 0
                 on_release: app.root.get_screen("admin_panel").formulier_opslaan(root)
-                canvas.before:
-                    Color:
-                        rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [12]
 
 
 # ============================================================
@@ -572,6 +969,7 @@
 
 <AfbeeldingKiezer@Popup>:
     formulier: None   # het formulier dat de afbeelding moet krijgen
+    doel: "hoofd"     # "hoofd" = hoofdafbeelding, "extra" = extra afbeeldingen (meerdere tegelijk)
 
     title: "Kies een afbeelding"
     title_font: "assets/fonts/Chalet NewYorkNineteenEighty.otf"

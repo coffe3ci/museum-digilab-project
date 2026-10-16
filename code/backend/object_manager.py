@@ -9,7 +9,32 @@ class ObjectManager:
         # Maakt verbinding met de database en zorgt dat de id's op orde zijn
         conn = get_connection()
         self._zet_om_naar_id(conn)
+        self._zorg_voor_extra_kolommen(conn)
         return conn
+
+    def _zorg_voor_extra_kolommen(self, conn):
+        # Elke extra afbeelding heeft een titel en een eigen maximale breedte/hoogte (NULL = geen limiet).
+        # Voegt die kolommen toe als ze nog niet bestaan.
+        kolommen = [rij["name"] for rij in conn.execute("PRAGMA table_info(object_afbeeldingen)")]
+        for kolom, soort in (
+            ("titel", "TEXT"),
+            ("breedte", "INTEGER"),
+            ("hoogte", "INTEGER"),
+            ("titel_zichtbaar", "INTEGER DEFAULT 1"),  # 1 = titel onder de foto tonen, 0 = niet
+            ("positie", "TEXT DEFAULT 'midden'"),      # "links", "midden" of "rechts"
+            ("positie_hoogte", "INTEGER"),             # links/rechts: dp vanaf boven (NULL = automatisch)
+            ("formaat", "TEXT DEFAULT 'groot'"),       # "klein", "normaal", "groot" of "origineel"
+        ):
+            if kolom not in kolommen:
+                conn.execute(f"ALTER TABLE object_afbeeldingen ADD COLUMN {kolom} {soort}")
+                conn.commit()
+
+        # De oude instelling per object (vorige versie) wordt niet meer gebruikt
+        kolommen = [rij["name"] for rij in conn.execute("PRAGMA table_info(objects)")]
+        for kolom in ("extra_breedte", "extra_hoogte"):
+            if kolom in kolommen:
+                conn.execute(f"ALTER TABLE objects DROP COLUMN {kolom}")
+                conn.commit()
 
     def _zet_om_naar_id(self, conn):
         # Eenmalige omzetting: had de tabel nog een aparte kolom "nummer",
@@ -85,6 +110,45 @@ class ObjectManager:
             "UPDATE objects SET titel = ?, beschrijving = ?, afbeelding = ? WHERE id = ?",
             (titel, beschrijving, afbeelding, obj_id),
         )
+        conn.commit()
+        conn.close()
+
+    def get_extra_afbeeldingen(self, obj_id):
+        # Haalt de extra afbeeldingen van een object op (in de volgorde van toevoegen).
+        # Elke afbeelding is een dict:
+        # {"pad", "titel", "breedte", "hoogte", "titel_zichtbaar", "positie", "positie_hoogte", "formaat"}
+        # breedte/hoogte = eigen grootte (optioneel); formaat = de keuze klein/normaal/groot/origineel
+        conn = self._verbind()
+        rows = conn.execute(
+            "SELECT afbeelding_pad, titel, breedte, hoogte, titel_zichtbaar, positie, positie_hoogte, formaat "
+            "FROM object_afbeeldingen WHERE object_id = ? ORDER BY id",
+            (obj_id,),
+        ).fetchall()
+        conn.close()
+        return [
+            {"pad": rij["afbeelding_pad"], "titel": rij["titel"] or "",
+             "breedte": rij["breedte"], "hoogte": rij["hoogte"],
+             "titel_zichtbaar": rij["titel_zichtbaar"] != 0,  # leeg (NULL) telt als zichtbaar
+             "positie": rij["positie"] or "midden",
+             "positie_hoogte": rij["positie_hoogte"],
+             # "medium" bestaat niet meer en telt als "normaal"
+             "formaat": "normaal" if rij["formaat"] == "medium" else (rij["formaat"] or "groot")}
+            for rij in rows
+        ]
+
+    def zet_extra_afbeeldingen(self, obj_id, items):
+        # Vervangt alle extra afbeeldingen van een object door de nieuwe lijst (dicts zoals hierboven)
+        conn = self._verbind()
+        conn.execute("DELETE FROM object_afbeeldingen WHERE object_id = ?", (obj_id,))
+        for item in items:
+            conn.execute(
+                "INSERT INTO object_afbeeldingen "
+                "(object_id, afbeelding_pad, titel, breedte, hoogte, titel_zichtbaar, positie, positie_hoogte, formaat) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (obj_id, item["pad"], item["titel"], item["breedte"], item["hoogte"],
+                 1 if item["titel_zichtbaar"] else 0, item["positie"], item["positie_hoogte"],
+                 item["formaat"]),
+            )
         conn.commit()
         conn.close()
 

@@ -9,23 +9,6 @@ from kivy.core.text import LabelBase  # Hiermee geven we een lettertype een kort
 FONT_MAP = "assets/fonts"
 NEW_YORK = f"{FONT_MAP}/Chalet NewYorkNineteenEighty.otf"
 LONDON = f"{FONT_MAP}/Chalet London Nineteen Eighty.otf"
-STANLEY = f"{FONT_MAP}/stanley.otf"
-
-
-# Tekens die het Stanley-font (titels) niet heeft, met een gelijkend teken dat het wel heeft.
-# Zonder deze vervanging tekent Kivy een leeg vierkantje.
-STANLEY_VERVANGINGEN = {
-    "–": "-",    # – gedachtestreepje
-    "—": "-",    # — lang gedachtestreepje
-    "…": "...",  # … beletselteken
-}
-
-
-def voor_titel(tekst):
-    # Maakt een tekst (bv. een objecttitel uit de database) geschikt voor het Stanley-font
-    for teken, vervanging in STANLEY_VERVANGINGEN.items():
-        tekst = tekst.replace(teken, vervanging)
-    return tekst
 
 
 def _of_reserve(pad):
@@ -34,7 +17,7 @@ def _of_reserve(pad):
 
 
 def registreer_fonts():
-    LabelBase.register(name="Titel", fn_regular=_of_reserve(STANLEY))
+    LabelBase.register(name="Titel", fn_regular=NEW_YORK)
     LabelBase.register(name="Tekst", fn_regular=NEW_YORK)
     LabelBase.register(name="Klein", fn_regular=_of_reserve(LONDON))
 

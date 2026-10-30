@@ -8,7 +8,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
 
 from backend.object_manager import ObjectManager
-from frontend.fonts import voor_titel  # Vervangt tekens die het Stanley-font niet heeft
 
 TUSSENRUIMTE = dp(20)  # Ruimte tussen foto's die automatisch onder elkaar staan
 
@@ -79,7 +78,7 @@ class ObjectDetailScreen(Screen):
         if obj is None:
             return
 
-        self.titel = voor_titel(obj[1])  # tekens die het titelfont niet heeft worden vervangen
+        self.titel = obj[1]
         self.beschrijving = obj[2] or ""
 
         # Toon de afbeelding alleen als het bestand echt bestaat

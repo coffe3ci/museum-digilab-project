@@ -8,18 +8,16 @@
                 pos: self.pos
                 size: self.size
                 # 2. Button Layout
-                # 2. Titel + knop
+                # 2. Logo + knop
         BoxLayout:
             orientation: "vertical"
             size_hint: 0.6, 0.4
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
             spacing: "20dp"
 
-            Label:
-                text: "Stadsmuseum Veenendaal"
-                font_name: "Titel"
-                font_size: "30sp"
-                color: 125/255, 67/255, 53/255, 1
+            Image:
+                source: "assets/images/logo.png"
+                fit_mode: "contain"   # logo houdt zijn vorm
 
             Button:
                 text: "Bekijk de objecten"

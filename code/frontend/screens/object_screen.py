@@ -11,7 +11,6 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget  # Lege widget, gebruikt als opvulling
 
 from backend.object_manager import ObjectManager
-from frontend.fonts import voor_titel  # Vervangt tekens die het Stanley-font niet heeft
 
 PER_PAGINA = 9  # Aantal objectknoppen per pagina (3x3)
 DUBBELTIK_TIJD = 0.6  # Maximaal aantal seconden tussen twee tikken op de geheime admin-knop
@@ -100,7 +99,7 @@ class ObjectScreen(Screen):
 
         for obj in pagina_objecten:
             knop = ObjectKnop()
-            knop.titel = voor_titel(obj[1])  # tekens die het titelfont niet heeft worden vervangen
+            knop.titel = obj[1]
             knop.nummer = str(obj["id"])  # Het id uit de database is het nummer (aanpasbaar in het adminpaneel)
 
             # Toon de afbeelding alleen als het bestand echt bestaat

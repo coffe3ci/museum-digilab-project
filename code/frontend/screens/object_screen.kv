@@ -91,50 +91,6 @@
                 radius: [15]
 
 
-# Ronde paginaknop onder de objectenwand (ook gebruikt voor de pijltjes < en >).
-# actief = True: dit is de pagina die je nu ziet (bruin met witte tekst).
-<PaginaKnop@Button>:
-    actief: False
-
-    font_name: "Tekst"
-    font_size: "15sp"
-    bold: True
-    color: (1, 1, 1, 1) if self.actief else (125/255, 67/255, 53/255, 1)
-    size_hint: None, None
-    size: "40dp", "40dp"
-    background_normal: ""
-    background_down: ""
-    background_disabled_normal: ""
-    background_disabled_down: ""
-    background_color: 0, 0, 0, 0
-    disabled_color: 125/255, 67/255, 53/255, 1
-    opacity: 0.35 if self.disabled else 1   # vaag als je niet verder kunt (eerste/laatste pagina)
-
-    canvas.before:
-        # Dunne lichte ring om de actieve knop
-        Color:
-            rgba: (125/255, 67/255, 53/255, 0.25) if self.actief else (0, 0, 0, 0)
-        Ellipse:
-            pos: self.x - dp(4), self.y - dp(4)
-            size: self.width + dp(8), self.height + dp(8)
-
-        # Het rondje zelf
-        Color:
-            rgba: ((100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)) if self.actief else ((215/255, 204/255, 190/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1))
-        Ellipse:
-            pos: self.pos
-            size: self.size
-
-# "..." tussen de paginanummers als er veel pagina's zijn
-<PaginaPuntjes@Label>:
-    text: "..."
-    font_name: "Tekst"
-    font_size: "15sp"
-    bold: True
-    color: 125/255, 67/255, 53/255, 1
-    size_hint: None, None
-    size: "30dp", "40dp"
-
 
 <ObjectScreen>:
     FloatLayout:
@@ -146,24 +102,24 @@
                 pos: self.pos
                 size: self.size
                 # 2. Button Layout
-        BoxLayout:
-            orientation: "vertical"
+        # Horizontaal scrollen door alle objecten (zonder zichtbare scrollbalk).
+        # Je ziet steeds 9 objecten (3x3); de rest staat rechts ernaast.
+        ScrollView:
+            id: scroller
             size_hint: 0.8, 0.75
             pos_hint: {"center_x": 0.5, "y": 0.05}
-            spacing: "20dp"
+            do_scroll_x: True
+            do_scroll_y: False
+            bar_width: 0
+            scroll_type: ["content"]
 
-            GridLayout:
-                id: grid
-                cols: 3
-                spacing: "15dp"
-
-            # Paginaknoppen: < 1 2 3 > (worden in object_screen.py aangemaakt)
+            # Blokken van 3x3 naast elkaar (worden in object_screen.py aangemaakt)
             BoxLayout:
-                id: pagina_knoppen
-                size_hint_y: None
-                height: "40dp"
-                spacing: "10dp"
-
+                id: wand
+                orientation: "horizontal"
+                size_hint_x: None
+                width: self.minimum_width
+                spacing: "15dp"
 
 
         # 3. Onzichtbare admin-knop (rechtsboven): 2x snel tikken opent het inlogscherm

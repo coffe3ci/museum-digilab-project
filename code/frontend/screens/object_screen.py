@@ -1,36 +1,19 @@
-import math  # Voor math.ceil: afronden naar boven bij het berekenen van het aantal pagina's
 import os  # Om te controleren of een afbeelding echt bestaat
 import time  # Om te meten hoe snel twee tikken na elkaar komen
 
 from kivy.core.image import Image as CoreImage  # Laadt een afbeelding als textuur om zelf te tekenen
-from kivy.factory import Factory  # Maakt PaginaKnoppen aan (gedefinieerd in object_screen.kv)
+from kivy.metrics import dp
 from kivy.properties import ObjectProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget  # Lege widget, gebruikt als opvulling
 
 from backend.object_manager import ObjectManager
 
-PER_PAGINA = 9  # Aantal objectknoppen per pagina (3x3)
+PER_PAGINA = 9  # Aantal objectknoppen per blok (3x3) = wat je in één keer ziet
 DUBBELTIK_TIJD = 0.6  # Maximaal aantal seconden tussen twee tikken op de geheime admin-knop
-MAX_PAGINAKNOPPEN = 7  # Bij meer pagina's worden er niet meer allemaal getoond (dan komt er "...")
-
-
-def zichtbare_paginas(huidig, totaal):
-    # Geeft de paginanummers die als knop getoond worden; None = "..." (overgeslagen pagina's).
-    # Bij weinig pagina's: allemaal. Anders: de eerste, de laatste en de huidige met zijn buren.
-    # Voorbeeld: pagina 6 van 12 -> [1, None, 5, 6, 7, None, 12]
-    if totaal <= MAX_PAGINAKNOPPEN:
-        return list(range(1, totaal + 1))
-
-    nummers = sorted({1, totaal, huidig - 1, huidig, huidig + 1} & set(range(1, totaal + 1)))
-    resultaat = []
-    for nr in nummers:
-        if resultaat and nr - resultaat[-1] > 1:
-            resultaat.append(None)  # Gat tussen twee nummers
-        resultaat.append(nr)
-    return resultaat
 
 
 class ObjectKnop(ButtonBehavior, FloatLayout):
@@ -78,86 +61,59 @@ class ObjectKnop(ButtonBehavior, FloatLayout):
 
 class ObjectScreen(Screen):
     objecten = []  # Alle objecten uit de database
-    huidige_pagina = 1  # De pagina die nu getoond wordt
     vorige_admin_tik = 0  # Tijdstip van de vorige tik op de geheime admin-knop
+
+    def on_kv_post(self, base_widget):
+        # Als het venster van grootte verandert, worden de blokken mee breder/smaller
+        self.ids.scroller.bind(width=self.pas_blokbreedte_aan)
+
+    def pas_blokbreedte_aan(self, scroller, breedte):
+        for blok in self.ids.wand.children:
+            blok.width = breedte
 
     def on_enter(self):
         # Wordt automatisch uitgevoerd elke keer dat dit scherm geopend wordt.
         # Zo zijn nieuwe objecten uit het adminpaneel direct zichtbaar.
         self.objecten = ObjectManager().get_all_objects()
-        self.huidige_pagina = 1
-        self.toon_pagina()
+        self.toon_objecten()
 
-    def toon_pagina(self):
-        # Vult het raster met de objectknoppen van de huidige pagina.
-        grid = self.ids.grid
-        grid.clear_widgets()  # Verwijder de knoppen van de vorige pagina
+    def toon_objecten(self):
+        # Zet alle objecten op de wand: blokken van 3x3 naast elkaar.
+        # Eén blok is precies zo breed als het zichtbare deel, dus je ziet eerst 9 objecten
+        # en scrollt van links naar rechts om de rest te zien.
+        scroller = self.ids.scroller
+        wand = self.ids.wand
+        wand.clear_widgets()  # Verwijder de knoppen van de vorige keer
 
-        # Pak de 9 objecten die bij deze pagina horen
-        start = (self.huidige_pagina - 1) * PER_PAGINA
-        pagina_objecten = self.objecten[start:start + PER_PAGINA]
+        for start in range(0, max(len(self.objecten), 1), PER_PAGINA):
+            blok_objecten = self.objecten[start:start + PER_PAGINA]
 
-        for obj in pagina_objecten:
-            knop = ObjectKnop()
-            knop.titel = obj[1]
-            knop.nummer = str(obj["id"])  # Het id uit de database is het nummer (aanpasbaar in het adminpaneel)
+            blok = GridLayout(cols=3, spacing=dp(15), size_hint_x=None, width=scroller.width)
 
-            # Toon de afbeelding alleen als het bestand echt bestaat
-            if obj[3] and os.path.exists(obj[3]):
-                knop.afbeelding = obj[3]
+            for obj in blok_objecten:
+                blok.add_widget(self.maak_knop(obj))
 
-            # obj_id=obj["id"] zorgt dat elke knop zijn eigen id onthoudt
-            knop.bind(on_release=lambda btn, obj_id=obj["id"]: self.open_object(obj_id))
-            grid.add_widget(knop)
+            # Vul lege plekken op, zodat de knoppen niet te groot worden
+            for _ in range(PER_PAGINA - len(blok_objecten)):
+                blok.add_widget(Widget())
 
-        # Vul lege plekken op, zodat de knoppen niet te groot worden
-        for _ in range(PER_PAGINA - len(pagina_objecten)):
-            grid.add_widget(Widget())
+            wand.add_widget(blok)
 
-        self.maak_paginaknoppen()
+        scroller.scroll_x = 0  # Begin altijd helemaal links
 
-    def maak_paginaknoppen(self):
-        # Maakt onder het raster de paginaknoppen: < 1 2 3 ... >
-        # Hoe de knoppen eruitzien staat in object_screen.kv (<PaginaKnop>).
-        balk = self.ids.pagina_knoppen
-        balk.clear_widgets()
+    def maak_knop(self, obj):
+        # Maakt één objectknop voor het gegeven object.
+        knop = ObjectKnop()
+        knop.titel = obj[1]
+        knop.nummer = str(obj["id"])  # Het id uit de database is het nummer (aanpasbaar in het adminpaneel)
 
-        aantal_paginas = math.ceil(len(self.objecten) / PER_PAGINA)
+        # Toon de afbeelding alleen als het bestand echt bestaat
+        if obj[3] and os.path.exists(obj[3]):
+            knop.afbeelding = obj[3]
 
-        # Bij 1 pagina of minder zijn er geen paginaknoppen nodig
-        if aantal_paginas <= 1:
-            return
-
-        balk.add_widget(Widget())  # Lege ruimte links (centreert de knoppen)
-
-        # Vorige pagina (uitgeschakeld op de eerste pagina)
-        vorige = Factory.PaginaKnop(text="<")
-        vorige.disabled = self.huidige_pagina == 1
-        vorige.bind(on_release=lambda btn: self.go_to_page(self.huidige_pagina - 1))
-        balk.add_widget(vorige)
-
-        for nr in zichtbare_paginas(self.huidige_pagina, aantal_paginas):
-            if nr is None:
-                balk.add_widget(Factory.PaginaPuntjes())  # "..." tussen de nummers
-                continue
-            knop = Factory.PaginaKnop(text=str(nr))
-            knop.actief = nr == self.huidige_pagina  # Huidige pagina is bruin gemarkeerd
-            # nr=nr zorgt dat elke knop zijn eigen paginanummer onthoudt
-            knop.bind(on_release=lambda btn, nr=nr: self.go_to_page(nr))
-            balk.add_widget(knop)
-
-        # Volgende pagina (uitgeschakeld op de laatste pagina)
-        volgende = Factory.PaginaKnop(text=">")
-        volgende.disabled = self.huidige_pagina == aantal_paginas
-        volgende.bind(on_release=lambda btn: self.go_to_page(self.huidige_pagina + 1))
-        balk.add_widget(volgende)
-
-        balk.add_widget(Widget())  # Lege ruimte rechts
-
-    def go_to_page(self, pagina):
-        # Wordt uitgevoerd als op een paginaknop wordt gedrukt.
-        self.huidige_pagina = pagina
-        self.toon_pagina()
+        # obj_id=obj["id"] zorgt dat elke knop zijn eigen id onthoudt
+        knop.bind(on_release=lambda btn, obj_id=obj["id"]: self.open_object(obj_id))
+        return knop
 
     def open_object(self, obj_id):
         # Wordt uitgevoerd als op een objectknop wordt gedrukt.

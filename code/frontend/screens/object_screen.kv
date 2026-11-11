@@ -101,28 +101,37 @@
             Rectangle:
                 pos: self.pos
                 size: self.size
-                # 2. Button Layout
-        # Horizontaal scrollen door alle objecten (zonder zichtbare scrollbalk).
-        # Je ziet steeds 9 objecten (3x3); de rest staat rechts ernaast.
-        ScrollView:
-            id: scroller
+        # 2. Logo van het bedrijf, midden boven de objecten (zelfde logo als op de homepagina)
+        Image:
+            source: "assets/images/logo.png"
+            fit_mode: "contain"   # logo houdt zijn vorm
+            # Zelfde vlak als eerst (40% breed, 13% hoog), maar 19dp kleiner
+            size_hint: None, None
+            size: self.parent.width * 0.4 - dp(19), self.parent.height * 0.13 - dp(19)
+            pos_hint: {"center_x": 0.5, "top": 0.96}
+
+        # 3. De objectenwand: je ziet steeds 9 objecten (3x3).
+        #    Eén keer vegen naar links/rechts schuift (met animatie) naar de volgende/vorige 9.
+        #    Het vegen zelf staat in object_screen.py (class VeegWand).
+        VeegWand:
+            id: veegwand
             size_hint: 0.8, 0.75
             pos_hint: {"center_x": 0.5, "y": 0.05}
-            do_scroll_x: True
-            do_scroll_y: False
-            bar_width: 0
-            scroll_type: ["content"]
 
-            # Blokken van 3x3 naast elkaar (worden in object_screen.py aangemaakt)
+            # Blokken van 3x3 naast elkaar (worden in object_screen.py aangemaakt).
+            # Schuift naar links mee met de "positie" van de VeegWand.
             BoxLayout:
                 id: wand
                 orientation: "horizontal"
-                size_hint_x: None
+                size_hint: None, None
                 width: self.minimum_width
+                height: self.parent.height
+                x: self.parent.x - self.parent.positie
+                y: self.parent.y
                 spacing: "15dp"
 
 
-        # 3. Onzichtbare admin-knop (rechtsboven): 2x snel tikken opent het inlogscherm
+        # 4. Onzichtbare admin-knop (rechtsboven): 4x snel tikken opent het inlogscherm
         Button:
             size_hint: None, None
             size: "55dp", "55dp"
@@ -132,7 +141,7 @@
             background_color: 0, 0, 0, 0
             on_release: root.admin_tik()
         
-        # 4. Terug-knop (Ronde knop linksboven)
+        # 5. Terug-knop (Ronde knop linksboven)
         Button:
             text: "<"
             font_size: "22sp"

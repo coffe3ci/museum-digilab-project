@@ -1,19 +1,25 @@
 import os  # Om te controleren of een afbeelding echt bestaat
 import time  # Om te meten hoe snel twee tikken na elkaar komen
 
+from kivy.animation import Animation  # Voor het soepel doorschuiven naar de volgende 9
 from kivy.core.image import Image as CoreImage  # Laadt een afbeelding als textuur om zelf te tekenen
 from kivy.metrics import dp
-from kivy.properties import ObjectProperty, StringProperty
+from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
+from kivy.uix.stencilview import StencilView  # Toont alleen wat binnen het vlak valt
 from kivy.uix.widget import Widget  # Lege widget, gebruikt als opvulling
 
 from backend.object_manager import ObjectManager
 
 PER_PAGINA = 9  # Aantal objectknoppen per blok (3x3) = wat je in één keer ziet
-DUBBELTIK_TIJD = 0.6  # Maximaal aantal seconden tussen twee tikken op de geheime admin-knop
+ADMIN_TIK_TIJD = 0.6  # Maximaal aantal seconden tussen twee tikken op de geheime admin-knop
+ADMIN_TIKKEN = 4  # Zo vaak snel achter elkaar tikken om het inlogscherm te openen
+VEEG_AFSTAND = 40  # Zo ver (in dp) moet je minstens vegen om naar het volgende blok te gaan
+TIK_AFSTAND = 15  # Minder bewogen dan dit (in dp) = een tik (object openen) in plaats van een veeg
+ANIMATIE_TIJD = 0.35  # Duur van het doorschuiven in seconden
 
 
 class ObjectKnop(ButtonBehavior, FloatLayout):
@@ -59,17 +65,102 @@ class ObjectKnop(ButtonBehavior, FloatLayout):
         self.uitsnede = self.textuur.get_region(x, y, breedte, hoogte)
 
 
+class VeegWand(StencilView):
+    # Het zichtbare vlak met de objecten. De blokken van 9 staan naast elkaar;
+    # met één veeg naar links of rechts schuift de wand (met animatie) precies één blok op.
+    # De wand zelf (id: wand) staat in object_screen.kv en schuift mee met "positie".
+    blok = NumericProperty(0)  # Welk blok nu zichtbaar is (0 = het eerste)
+    aantal_blokken = NumericProperty(1)
+    positie = NumericProperty(0)  # Hoeveel pixels de wand naar links is geschoven
+
+    def wand(self):
+        # De rij met blokken (het enige kind van de VeegWand, zie object_screen.kv)
+        return self.children[0]
+
+    def stap(self):
+        # Afstand van het ene blok naar het volgende: blokbreedte + de ruimte tussen de blokken.
+        # De ruimte lezen we uit de wand zelf (spacing in object_screen.kv), zodat het altijd klopt,
+        # ook bij Windows-schermschaling (125%, 150%) waarbij "dp" pas later zijn echte waarde krijgt.
+        if not self.children:
+            return self.width
+        return self.width + self.wand().spacing
+
+    def on_width(self, *args):
+        # Venster veranderd van grootte: blokken mee laten groeien en netjes op het blok blijven staan
+        if not self.children:
+            return
+        for blok in self.wand().children:
+            blok.width = self.width
+        Animation.cancel_all(self, "positie")
+        self.positie = self.blok * self.stap()
+
+    def ga_naar_blok(self, blok, animatie=True):
+        # Schuift naar het gegeven blok (wordt binnen de grenzen gehouden)
+        self.blok = max(0, min(blok, self.aantal_blokken - 1))
+        doel = self.blok * self.stap()
+        Animation.cancel_all(self, "positie")
+        if animatie:
+            Animation(positie=doel, d=ANIMATIE_TIJD, t="out_cubic").start(self)
+        else:
+            self.positie = doel
+
+    def on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos):
+            return False
+        # Deze aanraking is van ons: we volgen hem tot de vinger loslaat
+        touch.grab(self)
+        touch.ud["wand_start"] = self.positie
+        Animation.cancel_all(self, "positie")  # Een lopende animatie stoppen
+        return True
+
+    def on_touch_move(self, touch):
+        if touch.grab_current is not self:
+            return False
+        # De wand beweegt met de vinger mee
+        nieuw = touch.ud["wand_start"] - (touch.x - touch.ox)
+        uiterste = (self.aantal_blokken - 1) * self.stap()
+        # Voorbij het begin of eind: wand gaat maar een klein stukje mee (voelt als een elastiekje)
+        if nieuw < 0:
+            nieuw *= 0.3
+        elif nieuw > uiterste:
+            nieuw = uiterste + (nieuw - uiterste) * 0.3
+        self.positie = nieuw
+        return True
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is not self:
+            return False
+        touch.ungrab(self)
+
+        dx = touch.x - touch.ox
+        dy = touch.y - touch.oy
+        # dp() hier pas uitrekenen (niet bovenaan), zodat de schermschaling al bekend is
+        tik, veeg = dp(TIK_AFSTAND), dp(VEEG_AFSTAND)
+        if abs(dx) < tik and abs(dy) < tik:
+            # Nauwelijks bewogen: het is een tik, dus open het object onder de vinger
+            self.ga_naar_blok(self.blok)
+            self.tik(touch)
+        elif dx < -veeg:
+            self.ga_naar_blok(self.blok + 1)  # Naar links geveegd: volgende 9
+        elif dx > veeg:
+            self.ga_naar_blok(self.blok - 1)  # Naar rechts geveegd: vorige 9
+        else:
+            self.ga_naar_blok(self.blok)  # Te kleine veeg: terug naar hetzelfde blok
+        return True
+
+    def tik(self, touch):
+        # Zoekt de objectknop onder de vinger en "drukt" hem in (met het korte donkere effect)
+        for blok in self.wand().children:
+            for knop in blok.children:
+                if isinstance(knop, ObjectKnop) and knop.collide_point(*touch.pos):
+                    knop.trigger_action(duration=0.1)
+                    return
+
+
 class ObjectScreen(Screen):
     objecten = []  # Alle objecten uit de database
     vorige_admin_tik = 0  # Tijdstip van de vorige tik op de geheime admin-knop
-
-    def on_kv_post(self, base_widget):
-        # Als het venster van grootte verandert, worden de blokken mee breder/smaller
-        self.ids.scroller.bind(width=self.pas_blokbreedte_aan)
-
-    def pas_blokbreedte_aan(self, scroller, breedte):
-        for blok in self.ids.wand.children:
-            blok.width = breedte
+    admin_tikken = 0  # Hoeveel keer er al snel achter elkaar op de admin-knop is getikt
 
     def on_enter(self):
         # Wordt automatisch uitgevoerd elke keer dat dit scherm geopend wordt.
@@ -80,15 +171,17 @@ class ObjectScreen(Screen):
     def toon_objecten(self):
         # Zet alle objecten op de wand: blokken van 3x3 naast elkaar.
         # Eén blok is precies zo breed als het zichtbare deel, dus je ziet eerst 9 objecten
-        # en scrollt van links naar rechts om de rest te zien.
-        scroller = self.ids.scroller
+        # en veegt naar links of rechts om de volgende/vorige 9 te zien.
+        veegwand = self.ids.veegwand
         wand = self.ids.wand
         wand.clear_widgets()  # Verwijder de knoppen van de vorige keer
 
-        for start in range(0, max(len(self.objecten), 1), PER_PAGINA):
+        starts = range(0, max(len(self.objecten), 1), PER_PAGINA)
+        for start in starts:
             blok_objecten = self.objecten[start:start + PER_PAGINA]
 
-            blok = GridLayout(cols=3, spacing=dp(15), size_hint_x=None, width=scroller.width)
+            # Zelfde ruimte tussen de knoppen als tussen de blokken (spacing van de wand in de .kv)
+            blok = GridLayout(cols=3, spacing=wand.spacing, size_hint_x=None, width=veegwand.width)
 
             for obj in blok_objecten:
                 blok.add_widget(self.maak_knop(obj))
@@ -99,7 +192,8 @@ class ObjectScreen(Screen):
 
             wand.add_widget(blok)
 
-        scroller.scroll_x = 0  # Begin altijd helemaal links
+        veegwand.aantal_blokken = len(starts)
+        veegwand.ga_naar_blok(0, animatie=False)  # Begin altijd bij de eerste 9
 
     def maak_knop(self, obj):
         # Maakt één objectknop voor het gegeven object.
@@ -123,13 +217,18 @@ class ObjectScreen(Screen):
 
     def admin_tik(self):
         # Wordt uitgevoerd bij elke tik op de onzichtbare knop rechtsboven.
-        # Pas bij 2 tikken kort na elkaar gaat het inlogscherm open.
+        # Pas bij 4 tikken kort na elkaar gaat het inlogscherm open.
         nu = time.time()
-        if nu - self.vorige_admin_tik < DUBBELTIK_TIJD:
-            self.vorige_admin_tik = 0  # Opnieuw beginnen met tellen
-            self.go_to_admin()
+        if nu - self.vorige_admin_tik < ADMIN_TIK_TIJD:
+            self.admin_tikken += 1  # Snel genoeg na de vorige tik: doortellen
         else:
-            self.vorige_admin_tik = nu  # Eerste tik onthouden
+            self.admin_tikken = 1  # Te lang gewacht: opnieuw beginnen met tellen
+        self.vorige_admin_tik = nu
+
+        if self.admin_tikken >= ADMIN_TIKKEN:
+            self.admin_tikken = 0
+            self.vorige_admin_tik = 0
+            self.go_to_admin()
 
     def go_to_admin(self):  # Functie/methode om te navigeren naar het beheerderscherm
         self.manager.current = "admin"  # Verander het huidige actieve scherm naar het scherm met de naam 'admin'

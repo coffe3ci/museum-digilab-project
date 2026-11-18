@@ -9,6 +9,7 @@
 
 <ObjectItem@BoxLayout>:
     object_naam: ""
+    categorie: ""   # naam van de categorie ("" = nog geen categorie)
     object_id: 0
     afbeelding: ""
     nummer: ""
@@ -65,20 +66,34 @@
                 radius: [dp(6)]
 
 
-    # OBJECTNAAM
-    Label:
-        text: root.object_naam
-        font_name: "Tekst"
-        font_size: "14sp"
-        bold: True
-        color: 0.2, 0.2, 0.2, 1
-
+    # OBJECTNAAM met daaronder de categorie
+    BoxLayout:
+        orientation: "vertical"
         size_hint_x: 1
-        halign: "left"
-        valign: "middle"
-        text_size: self.size
-        shorten: True   # te lange titels worden afgekort met "..." zodat ze in het vak blijven
-        max_lines: 1
+
+        Label:
+            text: root.object_naam
+            font_name: "Tekst"
+            font_size: "14sp"
+            bold: True
+            color: 0.2, 0.2, 0.2, 1
+            halign: "left"
+            valign: "bottom"
+            text_size: self.size
+            shorten: True   # te lange titels worden afgekort met "..." zodat ze in het vak blijven
+            max_lines: 1
+
+        # Categorie (periode op de tijdlijn); rood als het object nog geen categorie heeft
+        Label:
+            text: root.categorie or "Nog geen categorie"
+            font_name: "Klein"
+            font_size: "12sp"
+            color: (125/255, 67/255, 53/255, 1) if root.categorie else (0.75, 0.20, 0.15, 1)
+            halign: "left"
+            valign: "top"
+            text_size: self.size
+            shorten: True
+            max_lines: 1
 
     # BEWERKEN
     Button:
@@ -822,6 +837,42 @@
                                 # Klik in de titel: de opmaakknoppen werken nu op de titel
                                 on_focus: if self.focus: root.opmaak_doel = "titel"
 
+                    # ---------- Categorie (periode op de tijdlijn) ----------
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "38dp"
+                        spacing: "8dp"
+
+                        VeldLabel:
+                            text: "Categorie"
+                            size_hint_x: None
+                            width: "80dp"
+                            height: "38dp"
+
+                        # De keuzes (namen van de categorieën) worden in admin_panel.py ingevuld
+                        Spinner:
+                            id: categorie
+                            text: "Geen categorie"
+                            values: []
+                            option_cls: "PositieOptie"
+                            font_name: "Tekst"
+                            font_size: "14sp"
+                            bold: True
+                            shorten: True
+                            text_size: self.width - dp(16), None
+                            halign: "center"
+                            color: (125/255, 67/255, 53/255, 1) if self.text != "Geen categorie" else (0.75, 0.20, 0.15, 1)
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
                     VeldLabel:
                         text: "Beschrijving"
 
@@ -1121,31 +1172,59 @@
         # OBJECT TOEVOEGEN
         # ====================================================
 
-        Button:
-            text: "+  Object toevoegen"
-            font_name: "Tekst"
-            font_size: "16sp"
-            bold: True
-            color: 1, 1, 1, 1
-
+        BoxLayout:
             size_hint_y: None
             height: "55dp"
+            spacing: "12dp"
 
-            background_normal: ""
-            background_down: ""
-            background_color: 0, 0, 0, 0
+            Button:
+                text: "+  Object toevoegen"
+                font_name: "Tekst"
+                font_size: "16sp"
+                bold: True
+                color: 1, 1, 1, 1
 
-            on_release:
-                root.object_toevoegen()
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
 
-            canvas.before:
-                Color:
-                    rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+                on_release:
+                    root.object_toevoegen()
 
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [dp(10)]
+                canvas.before:
+                    Color:
+                        rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+            # Categorieën (periodes op de tijdlijn) beheren en objecten erin zetten
+            Button:
+                text: "Categorieën"
+                font_name: "Tekst"
+                font_size: "16sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                size_hint_x: None
+                width: "180dp"
+
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+
+                on_release:
+                    root.open_categorie_beheer()
+
+                canvas.before:
+                    Color:
+                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
 
 
         # ====================================================
@@ -1336,6 +1415,495 @@
             HoofdKnop:
                 text: "Opslaan"
                 on_release: app.root.get_screen("admin_panel").wachtwoord_opslaan(root)
+
+# ============================================================
+# CATEGORIEËN (periodes op de tijdlijn)
+# ============================================================
+
+# Kleine knop met een driehoekje omhoog of omlaag (volgorde op de tijdlijn).
+# omhoog = True: driehoek wijst naar boven (eerder op de tijdlijn).
+<VolgordeKnop@Button>:
+    omhoog: True
+    size_hint: None, None
+    size: "30dp", "24dp"
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_color: 0, 0, 0, 0
+    opacity: 0.25 if self.disabled else 1
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6]
+        Color:
+            rgba: 125/255, 67/255, 53/255, 1
+        Triangle:
+            points: (self.center_x - dp(6), self.center_y - dp(3), self.center_x + dp(6), self.center_y - dp(3), self.center_x, self.center_y + dp(4)) if self.omhoog else (self.center_x - dp(6), self.center_y + dp(3), self.center_x + dp(6), self.center_y + dp(3), self.center_x, self.center_y - dp(4))
+
+# Eén categorie in de lijst van het categoriebeheer
+<CategorieRij@BoxLayout>:
+    cat_id: 0
+    naam: ""
+    periode: ""
+    aantal: 0
+    eerste: False   # bovenaan de tijdlijn: kan niet verder omhoog
+    laatste: False  # onderaan de tijdlijn: kan niet verder omlaag
+
+    size_hint_y: None
+    height: "60dp"
+    padding: ["10dp", "6dp"]
+    spacing: "8dp"
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+    # Volgorde op de tijdlijn
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_x: None
+        width: "30dp"
+        spacing: "4dp"
+        padding: [0, "2dp"]
+        VolgordeKnop:
+            omhoog: True
+            disabled: root.eerste
+            on_release: app.root.get_screen("admin_panel").categorie_verplaatsen(root.cat_id, -1)
+        VolgordeKnop:
+            omhoog: False
+            disabled: root.laatste
+            on_release: app.root.get_screen("admin_panel").categorie_verplaatsen(root.cat_id, 1)
+
+    # Naam met daaronder periode en aantal objecten
+    BoxLayout:
+        orientation: "vertical"
+        Label:
+            text: root.naam
+            font_name: "Tekst"
+            font_size: "15sp"
+            bold: True
+            color: 0.2, 0.2, 0.2, 1
+            halign: "left"
+            valign: "bottom"
+            text_size: self.size
+            shorten: True
+            max_lines: 1
+        Label:
+            text: (root.periode + "  ·  " if root.periode else "") + str(root.aantal) + (" object" if root.aantal == 1 else " objecten")
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 125/255, 67/255, 53/255, 1
+            halign: "left"
+            valign: "top"
+            text_size: self.size
+            shorten: True
+            max_lines: 1
+
+    ZachteKnop:
+        text: "Objecten"
+        font_size: "12sp"
+        size_hint: None, None
+        size: "84dp", "36dp"
+        pos_hint: {"center_y": 0.5}
+        on_release: app.root.get_screen("admin_panel").categorie_objecten(root.cat_id)
+
+    ZachteKnop:
+        text: "Bewerken"
+        font_size: "12sp"
+        size_hint: None, None
+        size: "84dp", "36dp"
+        pos_hint: {"center_y": 0.5}
+        on_release: app.root.get_screen("admin_panel").categorie_bewerken(root.cat_id)
+
+    RodeKnop:
+        text: "Verwijderen"
+        font_size: "12sp"
+        size_hint: None, None
+        size: "96dp", "36dp"
+        pos_hint: {"center_y": 0.5}
+        on_release: app.root.get_screen("admin_panel").categorie_verwijderen(root.cat_id)
+
+
+# Aan/uit-schakelaar in de vorm van een pilletje (bruin = aan, beige = uit)
+<Schakelaar@ToggleButton>:
+    text: "Aan" if self.state == "down" else "Uit"
+    font_name: "Tekst"
+    font_size: "13sp"
+    bold: True
+    color: (1, 1, 1, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+    size_hint: None, None
+    size: "70dp", "32dp"
+    # Tekst aan de kant waar het bolletje niet staat (aan: tekst links, uit: tekst rechts)
+    text_size: self.size
+    valign: "middle"
+    halign: "left" if self.state == "down" else "right"
+    padding: [dp(11), 0]
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (125/255, 67/255, 53/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+        # Wit bolletje: rechts als aan, links als uit
+        Color:
+            rgba: 1, 1, 1, 0.9
+        Ellipse:
+            pos: (self.right - self.height + dp(4), self.y + dp(4)) if self.state == "down" else (self.x + dp(4), self.y + dp(4))
+            size: self.height - dp(8), self.height - dp(8)
+
+# Eén instelling: titel met uitleg en rechts een aan/uit-schakelaar.
+# aan = True/False; verandert als je op de schakelaar drukt.
+<InstellingRij@BoxLayout>:
+    titel: ""
+    uitleg: ""
+    aan: False
+    size_hint_y: None
+    height: max(dp(44), tekst.height)
+    spacing: "10dp"
+
+    BoxLayout:
+        id: tekst
+        orientation: "vertical"
+        size_hint_y: None
+        height: self.minimum_height
+        pos_hint: {"center_y": 0.5}
+        Label:
+            text: root.titel
+            font_name: "Tekst"
+            font_size: "14sp"
+            bold: True
+            color: 0.2, 0.2, 0.2, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+        Label:
+            text: root.uitleg
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 0.45, 0.45, 0.45, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+    Schakelaar:
+        pos_hint: {"center_y": 0.5}
+        state: "down" if root.aan else "normal"
+        on_release: root.aan = self.state == "down"
+
+
+# Overzicht van alle categorieën (pop-up)
+<CategorieBeheer@Popup>:
+    title: "Categorieën (tijdlijn)"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(660))
+    height: min(Window.height * 0.9, dp(680))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        # ---------- Hoe zien bezoekers de categorieën? (wordt direct opgeslagen) ----------
+        Kaart:
+            BlokKop:
+                text: "Weergave voor bezoekers"
+
+            InstellingRij:
+                id: filter_tonen
+                titel: "Filterbalk tonen"
+                uitleg: "Bezoekers kunnen boven de objectenwand op periode filteren."
+                on_aan: app.root.get_screen("admin_panel").instelling_gewijzigd("filter_tonen", self.aan)
+
+            InstellingRij:
+                id: groeperen
+                titel: "Objecten per categorie groeperen"
+                uitleg: "Objecten van dezelfde periode staan bij elkaar op de wand, in een gekleurd vlak met de naam van de periode."
+                on_aan: app.root.get_screen("admin_panel").instelling_gewijzigd("groeperen", self.aan)
+
+        Label:
+            text: "Elk object hoort bij één categorie. De volgorde hieronder is de volgorde op de objectenwand (zet de vroegste periode bovenaan)."
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 0.4, 0.4, 0.4, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+        ScrollView:
+            do_scroll_x: False
+            bar_width: "4dp"
+
+            BoxLayout:
+                id: lijst
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "8dp"
+                # De CategorieRijen worden in admin_panel.py aangemaakt (vul_categorie_lijst)
+
+        # Waarschuwing als er objecten zonder categorie zijn
+        FoutLabel:
+            id: zonder_melding
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Sluiten"
+                height: "42dp"
+                size_hint_x: None
+                width: "120dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "+  Categorie toevoegen"
+                on_release: app.root.get_screen("admin_panel").categorie_toevoegen()
+
+
+# Categorie toevoegen of bewerken (pop-up)
+<CategorieFormulier@Popup>:
+    cat_id: 0   # 0 = nieuwe categorie
+    title: "Categorie toevoegen" if self.cat_id == 0 else "Categorie bewerken"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(420))
+    height: min(Window.height * 0.9, dp(300))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Kaart:
+            VeldLabel:
+                text: "Naam (bv. Franse tijd)"
+            FormulierVeld:
+                id: naam
+                multiline: False
+                write_tab: False
+
+            VeldLabel:
+                text: "Periode (optioneel, bv. 1795 – 1813)"
+            FormulierVeld:
+                id: periode
+                multiline: False
+                write_tab: False
+                on_text_validate: app.root.get_screen("admin_panel").categorie_formulier_opslaan(root)
+
+        Widget:
+
+        FoutLabel:
+            id: foutmelding
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").categorie_formulier_opslaan(root)
+
+
+# Eén object in de lijst "Objecten in deze categorie", met een vinkje
+<CategorieObjectRij@BoxLayout>:
+    obj_id: 0
+    titel: ""
+    andere: ""   # naam van de categorie waar het object nu (nog) in zit, "" = deze of geen
+
+    size_hint_y: None
+    height: "44dp"
+    padding: ["8dp", 0]
+    spacing: "8dp"
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+
+    CheckBox:
+        id: vink
+        size_hint_x: None
+        width: "36dp"
+        color: 125/255, 67/255, 53/255, 1   # bruine vinkjes (wit is onzichtbaar op de lichte achtergrond)
+
+    # Nummer in een rondje (zelfde als op de objectenwand)
+    Label:
+        text: str(root.obj_id)
+        font_size: "12sp"
+        bold: True
+        color: 1, 1, 1, 1
+        size_hint: None, None
+        size: "26dp", "26dp"
+        pos_hint: {"center_y": 0.5}
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.55
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [13]
+
+    Label:
+        text: root.titel
+        font_name: "Tekst"
+        font_size: "13sp"
+        color: 0.2, 0.2, 0.2, 1
+        halign: "left"
+        valign: "middle"
+        text_size: self.size
+        shorten: True
+        max_lines: 1
+
+    # Zit het object nu in een andere categorie? Dan verhuist het als je het aanvinkt.
+    Label:
+        text: ("nu: " + root.andere) if root.andere else ""
+        font_name: "Klein"
+        font_size: "11sp"
+        color: 0.55, 0.55, 0.55, 1
+        size_hint_x: None
+        width: "150dp" if root.andere else 0
+        halign: "right"
+        valign: "middle"
+        text_size: self.size
+        shorten: True
+        max_lines: 1
+
+
+# Kiezen welke objecten in een categorie zitten (pop-up)
+<CategorieObjecten@Popup>:
+    cat_id: 0
+    cat_naam: ""
+    title: "Objecten in: " + self.cat_naam
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(600))
+    height: min(Window.height * 0.9, dp(620))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Label:
+            text: "Vink de objecten aan die bij deze categorie horen. Een object kan maar in één categorie zitten: zit het al in een andere, dan verhuist het hierheen."
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 0.4, 0.4, 0.4, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+        ScrollView:
+            do_scroll_x: False
+            bar_width: "4dp"
+
+            BoxLayout:
+                id: lijst
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "6dp"
+                # De CategorieObjectRijen worden in admin_panel.py aangemaakt (categorie_objecten)
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").categorie_objecten_opslaan(root)
+
+
+# Bevestigen voordat een categorie verwijderd wordt (pop-up)
+<BevestigCategorieVerwijderen@Popup>:
+    cat_id: 0
+    naam: ""
+    aantal: 0
+    title: "Categorie verwijderen"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(440))
+    height: min(Window.height * 0.9, dp(220))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "12dp"
+
+        Label:
+            text: 'Weet je zeker dat je "' + root.naam + '" wilt verwijderen?' + (("\n" + str(root.aantal) + (" object heeft" if root.aantal == 1 else " objecten hebben") + " daarna geen categorie meer.") if root.aantal else "")
+            font_name: "Tekst"
+            font_size: "14sp"
+            color: 0.2, 0.2, 0.2, 1
+            halign: "center"
+            valign: "middle"
+            text_size: self.size
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            RodeKnop:
+                text: "Verwijderen"
+                on_release: app.root.get_screen("admin_panel").categorie_verwijderen_bevestigd(root)
+
 
 # ============================================================
 # AFBEELDING KIEZEN (pop-up)

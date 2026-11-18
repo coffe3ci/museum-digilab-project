@@ -43,6 +43,19 @@ class ObjectManager:
                 conn.execute(f"ALTER TABLE objects ADD COLUMN {kolom} TEXT")
                 conn.commit()
 
+        # Categorieën (periodes op de tijdlijn). volgorde = plek op de tijdlijn (1 = vroegste).
+        # Elk object hoort bij één categorie (objects.categorie_id; NULL = nog geen categorie).
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS categorieen ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, naam TEXT NOT NULL, periode TEXT, volgorde INTEGER)"
+        )
+        if "categorie_id" not in kolommen:
+            conn.execute("ALTER TABLE objects ADD COLUMN categorie_id INTEGER")
+
+        # Instellingen die het museum in het adminpaneel kan aan/uitzetten (sleutel -> waarde)
+        conn.execute("CREATE TABLE IF NOT EXISTS instellingen (sleutel TEXT PRIMARY KEY, waarde TEXT)")
+        conn.commit()
+
         # De oude instelling per object (vorige versie) wordt niet meer gebruikt
         for kolom in ("extra_breedte", "extra_hoogte"):
             if kolom in kolommen:
@@ -90,19 +103,19 @@ class ObjectManager:
         # Haalt alle objecten op uit de database, gesorteerd op id (= nummer)
         conn = self._verbind()
         rows = conn.execute(
-            "SELECT id, titel, beschrijving, afbeelding FROM objects ORDER BY id"
+            "SELECT id, titel, beschrijving, afbeelding, categorie_id FROM objects ORDER BY id"
         ).fetchall()
         conn.close()
         return rows
 
     def add_object(self, titel, beschrijving, afbeelding=None, hoofd_formaat="normaal", opmaak=None,
-                   titel_opmaak=None):
+                   titel_opmaak=None, categorie_id=None):
         # Voegt een nieuw object toe aan de database (achteraan) en geeft het nieuwe id terug
         conn = self._verbind()
         cursor = conn.execute(
-            "INSERT INTO objects (titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak),
+            "INSERT INTO objects (titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, categorie_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, categorie_id),
         )
         conn.commit()
         conn.close()
@@ -112,7 +125,7 @@ class ObjectManager:
         # Haalt één specifiek object op basis van ID op
         conn = self._verbind()
         row = conn.execute(
-            "SELECT id, titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak "
+            "SELECT id, titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, categorie_id "
             "FROM objects WHERE id = ?",
             (obj_id,),
         ).fetchone()
@@ -120,13 +133,13 @@ class ObjectManager:
         return row
 
     def update_object(self, obj_id, titel, beschrijving, afbeelding=None, hoofd_formaat="normaal", opmaak=None,
-                      titel_opmaak=None):
+                      titel_opmaak=None, categorie_id=None):
         # Werkt een bestaand object bij in de database
         conn = self._verbind()
         conn.execute(
             "UPDATE objects SET titel = ?, beschrijving = ?, afbeelding = ?, hoofd_formaat = ?, opmaak = ?, "
-            "titel_opmaak = ? WHERE id = ?",
-            (titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, obj_id),
+            "titel_opmaak = ?, categorie_id = ? WHERE id = ?",
+            (titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, categorie_id, obj_id),
         )
         conn.commit()
         conn.close()
@@ -182,6 +195,101 @@ class ObjectManager:
             self._verander_id(conn, nieuw_nummer, obj_id)  # Ander object krijgt het oude id
             self._verander_id(conn, -1, nieuw_nummer)      # Dit object krijgt het nieuwe id
             conn.commit()
+        conn.close()
+
+    # ---------- Instellingen (aan/uit-knoppen in het adminpaneel) ----------
+    # "filter_tonen": filterbalk boven de objectenwand tonen (standaard aan)
+    # "groeperen":    objecten per categorie bij elkaar in een gekleurde bubbel (standaard uit)
+    STANDAARD_INSTELLINGEN = {"filter_tonen": True, "groeperen": False}
+
+    def get_instelling(self, sleutel):
+        conn = self._verbind()
+        rij = conn.execute("SELECT waarde FROM instellingen WHERE sleutel = ?", (sleutel,)).fetchone()
+        conn.close()
+        if rij is None:
+            return self.STANDAARD_INSTELLINGEN[sleutel]
+        return rij[0] == "1"
+
+    def zet_instelling(self, sleutel, aan):
+        conn = self._verbind()
+        conn.execute("INSERT OR REPLACE INTO instellingen (sleutel, waarde) VALUES (?, ?)",
+                     (sleutel, "1" if aan else "0"))
+        conn.commit()
+        conn.close()
+
+    # ---------- Categorieën (periodes op de tijdlijn) ----------
+
+    def get_categorieen(self):
+        # Alle categorieën in tijdlijn-volgorde, als dicts: {"id", "naam", "periode", "aantal"}
+        # aantal = hoeveel objecten erin zitten
+        conn = self._verbind()
+        rows = conn.execute(
+            "SELECT c.id, c.naam, c.periode, COUNT(o.id) AS aantal "
+            "FROM categorieen c LEFT JOIN objects o ON o.categorie_id = c.id "
+            "GROUP BY c.id ORDER BY c.volgorde, c.id"
+        ).fetchall()
+        conn.close()
+        return [{"id": r["id"], "naam": r["naam"], "periode": r["periode"] or "", "aantal": r["aantal"]}
+                for r in rows]
+
+    def naam_bestaat(self, naam, behalve_id=None):
+        # True als er al een (andere) categorie met deze naam is (hoofdletters tellen niet mee)
+        conn = self._verbind()
+        rij = conn.execute(
+            "SELECT id FROM categorieen WHERE LOWER(naam) = LOWER(?) AND id IS NOT ?",
+            (naam.strip(), behalve_id),
+        ).fetchone()
+        conn.close()
+        return rij is not None
+
+    def voeg_categorie_toe(self, naam, periode=""):
+        # Nieuwe categorie, achteraan op de tijdlijn. Geeft het nieuwe id terug.
+        conn = self._verbind()
+        hoogste = conn.execute("SELECT MAX(volgorde) FROM categorieen").fetchone()[0] or 0
+        cursor = conn.execute(
+            "INSERT INTO categorieen (naam, periode, volgorde) VALUES (?, ?, ?)",
+            (naam.strip(), periode.strip(), hoogste + 1),
+        )
+        conn.commit()
+        conn.close()
+        return cursor.lastrowid
+
+    def update_categorie(self, cat_id, naam, periode=""):
+        conn = self._verbind()
+        conn.execute("UPDATE categorieen SET naam = ?, periode = ? WHERE id = ?",
+                     (naam.strip(), periode.strip(), cat_id))
+        conn.commit()
+        conn.close()
+
+    def verwijder_categorie(self, cat_id):
+        # Verwijdert de categorie; de objecten erin hebben daarna (nog) geen categorie
+        conn = self._verbind()
+        conn.execute("UPDATE objects SET categorie_id = NULL WHERE categorie_id = ?", (cat_id,))
+        conn.execute("DELETE FROM categorieen WHERE id = ?", (cat_id,))
+        conn.commit()
+        conn.close()
+
+    def verplaats_categorie(self, cat_id, richting):
+        # Schuift een categorie één plek eerder (richting -1) of later (+1) op de tijdlijn
+        conn = self._verbind()
+        ids = [r["id"] for r in conn.execute("SELECT id FROM categorieen ORDER BY volgorde, id")]
+        i = ids.index(cat_id)
+        j = i + richting
+        if 0 <= j < len(ids):
+            ids[i], ids[j] = ids[j], ids[i]
+            for volgorde, cid in enumerate(ids, start=1):  # Volgorde netjes 1, 2, 3, ... maken
+                conn.execute("UPDATE categorieen SET volgorde = ? WHERE id = ?", (volgorde, cid))
+            conn.commit()
+        conn.close()
+
+    def zet_objecten_in_categorie(self, cat_id, obj_ids):
+        # Precies deze objecten komen in de categorie. Objecten die er eerst in zaten maar
+        # niet meer in obj_ids staan, hebben daarna geen categorie.
+        conn = self._verbind()
+        conn.execute("UPDATE objects SET categorie_id = NULL WHERE categorie_id = ?", (cat_id,))
+        conn.executemany("UPDATE objects SET categorie_id = ? WHERE id = ?",
+                         [(cat_id, obj_id) for obj_id in obj_ids])
+        conn.commit()
         conn.close()
 
     def delete_object(self, obj_id):

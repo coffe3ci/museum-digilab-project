@@ -1,3 +1,4 @@
+#:import TITEL_MARGE frontend.screens.object_screen.TITEL_MARGE
 # ObjectKnop is een Python-klasse (zie object_screen.py); hier staat alleen hoe hij eruitziet.
 <ObjectKnop>:
     canvas.before:
@@ -44,20 +45,23 @@
             size: self.size
             radius: [12]
 
-    # Titel: met afbeelding op een donkere balk onderaan, zonder afbeelding midden in de knop
+    # Titel: met afbeelding op een donkere balk onderaan, zonder afbeelding midden in de knop.
+    # Lange titels: de balk wordt hoger (max. 2 regels) en de letter iets kleiner, zodat de
+    # titel er altijd netjes in past (zie past_titel in object_screen.py).
     Label:
-        text: root.titel
+        text: root.titel_tekst
         font_name: "Tekst"
-        font_size: "15sp"
+        font_size: root.titel_grootte
         bold: True
         color: (1, 1, 1, 1) if root.afbeelding else (0.2, 0.2, 0.2, 1)
         size_hint_x: 1
         size_hint_y: None if root.afbeelding else 1
-        height: "36dp"
+        height: self.texture_size[1] + dp(14)
         pos_hint: {"x": 0, "y": 0}
         halign: "center"
         valign: "middle"
-        text_size: self.size
+        text_size: self.width - dp(2 * TITEL_MARGE), None   # ruimte aan de zijkanten
+        line_height: 0.95
 
         canvas.before:
             Color:
@@ -152,6 +156,69 @@
     size: "24dp", "36dp"
 
 
+# Filterknop boven de objectenwand: één periode van de tijdlijn (of "Alle objecten").
+# actief = True: dit filter is gekozen (bruin met witte tekst).
+# De tekst bevat markup: naam vetgedrukt met de periode kleiner eronder (twee regels).
+# Alle filterknoppen zijn even breed: een derde van de filterbalk (er staan er altijd 3 in beeld).
+<FilterKnop@Button>:
+    actief: False
+    markup: True
+    font_name: "Tekst"
+    font_size: "15sp"
+    halign: "center"
+    valign: "middle"
+    text_size: self.width - dp(20), None   # te lange naam gaat netjes naar een volgende regel
+    line_height: 0.95
+    color: (1, 1, 1, 1) if self.actief else (125/255, 67/255, 53/255, 1)
+    size_hint: 1, 1
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: ((100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)) if self.actief else ((215/255, 204/255, 190/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1))
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+
+
+# Bubbel om 9 objecten van dezelfde categorie (als "groeperen" aan staat in het adminpaneel):
+# een zacht gekleurd vlak met afgeronde hoeken en bovenaan de naam en periode.
+# Het raster met objectknoppen wordt in object_screen.py in "inhoud" gezet.
+<CategorieBubbel@BoxLayout>:
+    naam: ""
+    periode: ""
+    kleur: (0.93, 0.86, 0.76, 1)
+    orientation: "vertical"
+    padding: ["12dp", "6dp", "12dp", "12dp"]
+    spacing: "6dp"
+    canvas.before:
+        Color:
+            rgba: self.kleur
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(18)]
+
+    # Naam van de periode, met de jaartallen erachter
+    Label:
+        markup: True
+        text: "[b]" + root.naam + "[/b]" + (("   [size=13sp]" + root.periode + "[/size]") if root.periode else "")
+        font_name: "Tekst"
+        font_size: "16sp"
+        color: 125/255, 67/255, 53/255, 1
+        size_hint_y: None
+        height: "26dp"
+        halign: "left"
+        valign: "middle"
+        text_size: self.size
+        shorten: True
+
+    BoxLayout:
+        id: inhoud
+
+
 <ObjectScreen>:
     FloatLayout:
         # 1. Achtergrond (Beige/Crème achtergrond)
@@ -173,10 +240,11 @@
         # 3. De objectenwand: je ziet steeds 9 objecten (3x3).
         #    Eén keer vegen naar links/rechts schuift (met animatie) naar de volgende/vorige 9.
         #    Het vegen zelf staat in object_screen.py (class VeegWand).
-        #    (Iets hoger dan eerst, zodat de paginanummers eronder passen.)
+        #    (Onder ruimte voor de paginanummers, boven ruimte voor de filterknoppen.)
         VeegWand:
             id: veegwand
-            size_hint: 0.8, 0.69
+            # Filterbalk uit (instelling in het adminpaneel)? Dan wordt de wand hoger
+            size_hint: 0.8, (0.63 if root.filter_zichtbaar else 0.69)
             pos_hint: {"center_x": 0.5, "y": 0.11}
             # Pijlen en nummers bijwerken als je naar andere 9 gaat (ook bij vegen)
             on_blok: root.werk_navigatie_bij()
@@ -194,18 +262,72 @@
                 y: self.parent.y
                 spacing: "15dp"
 
+        # Melding als er in het gekozen filter geen objecten zitten
+        Label:
+            id: leeg_melding
+            text: "Er zijn (nog) geen objecten in deze periode."
+            font_name: "Tekst"
+            font_size: "18sp"
+            color: 125/255, 67/255, 53/255, 1
+            opacity: 0
+            size_hint: 0.8, None
+            height: "40dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.11 + (0.63 if root.filter_zichtbaar else 0.69) / 2}
+            halign: "center"
+            text_size: self.size
+
+        # Filterknoppen (tijdlijn): "Alle objecten" + één knop per periode.
+        # Er staan altijd precies 3 filters in beeld. Net als bij de objecten:
+        # vegen of de pijltjes gebruiken om de volgende/vorige 3 te zien (met animatie).
+        # De knoppen worden in object_screen.py aangemaakt (maak_filterknoppen).
+        VeegWand:
+            id: filter_wand
+            size_hint: 0.8, None
+            height: "50dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.79}
+            on_blok: root.werk_filterpijlen_bij()
+            on_aantal_blokken: root.werk_filterpijlen_bij()
+
+            # Blokken van 3 filters naast elkaar; schuift mee met de "positie" van de VeegWand
+            BoxLayout:
+                id: filters
+                orientation: "horizontal"
+                size_hint: None, None
+                width: self.minimum_width
+                height: self.parent.height
+                x: self.parent.x - self.parent.positie
+                y: self.parent.y
+                spacing: "10dp"
+
+        # Pijltjes naast de filters (kleiner dan die naast de objecten)
+        PijlKnop:
+            id: filter_links
+            text: "<"
+            font_size: "18sp"
+            size: "38dp", "38dp"
+            pos_hint: {"center_x": 0.05, "center_y": 0.79}
+            on_release: filter_wand.ga_naar_blok(filter_wand.blok - 1)
+
+        PijlKnop:
+            id: filter_rechts
+            text: ">"
+            font_size: "18sp"
+            size: "38dp", "38dp"
+            pos_hint: {"center_x": 0.95, "center_y": 0.79}
+            on_release: filter_wand.ga_naar_blok(filter_wand.blok + 1)
+
         # Pijl links: naar de vorige 9 objecten
         PijlKnop:
             id: pijl_links
             text: "<"
-            pos_hint: {"center_x": 0.05, "center_y": 0.11 + 0.69 / 2}
+            pos_hint: {"center_x": 0.05, "center_y": 0.11 + (0.63 if root.filter_zichtbaar else 0.69) / 2}
             on_release: veegwand.ga_naar_blok(veegwand.blok - 1)
 
         # Pijl rechts: naar de volgende 9 objecten
         PijlKnop:
             id: pijl_rechts
             text: ">"
-            pos_hint: {"center_x": 0.95, "center_y": 0.11 + 0.69 / 2}
+            pos_hint: {"center_x": 0.95, "center_y": 0.11 + (0.63 if root.filter_zichtbaar else 0.69) / 2}
             on_release: veegwand.ga_naar_blok(veegwand.blok + 1)
 
         # Paginanummers onderin (1 2 3 4 ...): worden in object_screen.py aangemaakt,

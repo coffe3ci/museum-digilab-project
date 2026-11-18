@@ -11,6 +11,11 @@ import threading
 import time
 
 
+# Geen rode cirkels bij een rechtermuisklik: Kivy gebruikt de rechterknop standaard om een
+# "tweede vinger" (multitouch) na te doen. Dit moet vóór alle andere Kivy-imports staan.
+from kivy.config import Config
+Config.set("input", "mouse", "mouse,multitouch_on_demand")
+
 # App is de basis van iedere Kivy-applicatie.
 from kivy.app import App
 

@@ -15,6 +15,7 @@ from frontend.screens.object_detail_screen import PaginaVoorbeeld  # noqa: F401 
 AFBEELDING_MAP = "assets/objects_img"  # hier worden de afbeeldingen naartoe gekopieerd
 ADMIN_GEBRUIKER = "admin"  # De beheerder (zelfde gebruikersnaam als in admin_screen.py)
 MIN_WACHTWOORD_LENGTE = 8  # Een nieuw wachtwoord moet minstens zo lang zijn
+GEEN_CATEGORIE = "Geen categorie"  # Keuze in het objectformulier als een object (nog) geen categorie heeft
 
 
 def fotomap():
@@ -36,9 +37,11 @@ class AdminPanelScreen(Screen):
         lijst.clear_widgets() # Verwijdert de oude lijst
 
         objecten = ObjectManager().get_all_objects()
+        namen = {cat["id"]: cat["naam"] for cat in ObjectManager().get_categorieen()}
         for obj in objecten:
             item = Factory.ObjectItem()
             item.object_naam = obj[1]  # Alleen de titel, geen beschrijving
+            item.categorie = namen.get(obj["categorie_id"], "")  # "" = nog geen categorie (rood)
             item.object_id = obj["id"]
             item.nummer = str(obj["id"])  # Het id is ook het nummer op de objectenwand
             item.afbeelding = obj[3] or ""  # obj[3] = afbeelding (None wordt "")
@@ -52,8 +55,17 @@ class AdminPanelScreen(Screen):
     def object_toevoegen(self):
         formulier = Factory.ObjectFormulier() # Leeg formulier (obj_id blijft 0 = nieuw object)
         formulier.ids.nummer.text = str(len(ObjectManager().get_all_objects()) + 1) # Standaard achteraan
+        self.vul_categorie_keuze(formulier, None)
         self.toon_extra_afbeeldingen(formulier)
         formulier.open()
+
+    def vul_categorie_keuze(self, formulier, categorie_id):
+        # Vult de keuzelijst "Categorie" in het objectformulier met alle categorieën (tijdlijn-volgorde)
+        categorieen = ObjectManager().get_categorieen()
+        formulier.categorie_per_naam = {cat["naam"]: cat["id"] for cat in categorieen}
+        keuze = formulier.ids.categorie
+        keuze.values = [cat["naam"] for cat in categorieen] + [GEEN_CATEGORIE]
+        keuze.text = next((cat["naam"] for cat in categorieen if cat["id"] == categorie_id), GEEN_CATEGORIE)
 
     def object_bewerken(self, obj_id):
         obj = ObjectManager().get_object(obj_id)
@@ -68,6 +80,7 @@ class AdminPanelScreen(Screen):
         formulier.afbeelding = obj[3] or ""
         formulier.ids.hoofd_formaat.text = (obj["hoofd_formaat"] or "normaal").capitalize()  # "groot" -> "Groot"
         formulier.extra_afbeeldingen = ObjectManager().get_extra_afbeeldingen(obj_id)
+        self.vul_categorie_keuze(formulier, obj["categorie_id"])
         self.toon_extra_afbeeldingen(formulier)
         formulier.open()
 
@@ -87,16 +100,22 @@ class AdminPanelScreen(Screen):
             return
         nummer = int(nummer_tekst)
 
+        # Elk object hoort in een categorie (als er categorieën zijn)
+        categorie_id = formulier.categorie_per_naam.get(formulier.ids.categorie.text)
+        if categorie_id is None and formulier.categorie_per_naam:
+            formulier.ids.foutmelding.text = "Kies een categorie voor dit object."
+            return
+
         afbeelding = formulier.afbeelding or None  # "" wordt None (leeg) in de database
         hoofd_formaat = formulier.ids.hoofd_formaat.text.lower()  # grootte van de hoofdfoto op de objectpagina
 
         if formulier.obj_id == 0:
             obj_id = ObjectManager().add_object(  # Nieuw object (achteraan)
-                titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak)
+                titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, categorie_id)
         else:
             obj_id = formulier.obj_id
             ObjectManager().update_object(  # Bestaand object
-                obj_id, titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak)
+                obj_id, titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak, categorie_id)
 
         # Extra afbeeldingen opslaan (voor het ruilen, dan verhuizen ze vanzelf mee)
         ObjectManager().zet_extra_afbeeldingen(obj_id, formulier.extra_afbeeldingen)
@@ -120,6 +139,129 @@ class AdminPanelScreen(Screen):
 
     def uitloggen(self):
         self.manager.current = "admin" # Stuurt beheerder terug naar inlogscherm
+
+    # ---------- Categorieën (periodes op de tijdlijn) ----------
+
+    def open_categorie_beheer(self):
+        # Opent het overzicht van alle categorieën (CategorieBeheer in admin_panel.kv)
+        self.categorie_beheer = Factory.CategorieBeheer()
+        self.categorie_beheer.bind(on_dismiss=lambda *a: self.laad_objecten())  # Lijst bijwerken na sluiten
+        # Aan/uit-knoppen "Weergave voor bezoekers" op de opgeslagen stand zetten
+        for sleutel in ("filter_tonen", "groeperen"):
+            self.categorie_beheer.ids[sleutel].aan = ObjectManager().get_instelling(sleutel)
+        self.vul_categorie_lijst()
+        self.categorie_beheer.open()
+
+    def instelling_gewijzigd(self, sleutel, aan):
+        # Een aan/uit-knop bij "Weergave voor bezoekers" is omgezet: meteen opslaan.
+        # De objectenwand leest dit elke keer dat hij geopend wordt.
+        ObjectManager().zet_instelling(sleutel, aan)
+
+    def vul_categorie_lijst(self):
+        # (Opnieuw) de rijen in het categoriebeheer maken, in tijdlijn-volgorde
+        beheer = getattr(self, "categorie_beheer", None)
+        if beheer is None:
+            return
+        lijst = beheer.ids.lijst
+        lijst.clear_widgets()
+        categorieen = ObjectManager().get_categorieen()
+        for i, cat in enumerate(categorieen):
+            rij = Factory.CategorieRij()
+            rij.cat_id = cat["id"]
+            rij.naam = cat["naam"]
+            rij.periode = cat["periode"]
+            rij.aantal = cat["aantal"]
+            rij.eerste = i == 0
+            rij.laatste = i == len(categorieen) - 1
+            lijst.add_widget(rij)
+        if not categorieen:
+            lijst.add_widget(Factory.ExtraLeegLabel(text="Nog geen categorieën. Voeg er hieronder een toe."))
+
+        # Waarschuwing: objecten zonder categorie
+        zonder = [obj["id"] for obj in ObjectManager().get_all_objects() if obj["categorie_id"] is None]
+        beheer.ids.zonder_melding.text = (
+            f"Nog zonder categorie: object {', '.join(map(str, zonder))}" if zonder else "")
+
+    def categorie_verplaatsen(self, cat_id, richting):
+        # Pijltje omhoog (-1) of omlaag (+1): eerder of later op de tijdlijn
+        ObjectManager().verplaats_categorie(cat_id, richting)
+        self.vul_categorie_lijst()
+
+    def categorie_toevoegen(self):
+        Factory.CategorieFormulier().open()
+
+    def categorie_bewerken(self, cat_id):
+        cat = next((c for c in ObjectManager().get_categorieen() if c["id"] == cat_id), None)
+        if cat is None:
+            return
+        formulier = Factory.CategorieFormulier()
+        formulier.cat_id = cat_id
+        formulier.ids.naam.text = cat["naam"]
+        formulier.ids.periode.text = cat["periode"]
+        formulier.open()
+
+    def categorie_formulier_opslaan(self, formulier):
+        naam = formulier.ids.naam.text.strip()
+        periode = formulier.ids.periode.text.strip()
+        if not naam:
+            formulier.ids.foutmelding.text = "Vul een naam in."
+            return
+        if naam == GEEN_CATEGORIE:
+            formulier.ids.foutmelding.text = f'"{GEEN_CATEGORIE}" kan geen naam zijn.'
+            return
+        if ObjectManager().naam_bestaat(naam, formulier.cat_id or None):
+            formulier.ids.foutmelding.text = "Er is al een categorie met deze naam."
+            return
+
+        if formulier.cat_id == 0:
+            ObjectManager().voeg_categorie_toe(naam, periode)
+        else:
+            ObjectManager().update_categorie(formulier.cat_id, naam, periode)
+        formulier.dismiss()
+        self.vul_categorie_lijst()
+
+    def categorie_verwijderen(self, cat_id):
+        cat = next((c for c in ObjectManager().get_categorieen() if c["id"] == cat_id), None)
+        if cat is None:
+            return
+        bevestiging = Factory.BevestigCategorieVerwijderen()
+        bevestiging.cat_id = cat_id
+        bevestiging.naam = cat["naam"]
+        bevestiging.aantal = cat["aantal"]
+        bevestiging.open()
+
+    def categorie_verwijderen_bevestigd(self, bevestiging):
+        ObjectManager().verwijder_categorie(bevestiging.cat_id)
+        bevestiging.dismiss()
+        self.vul_categorie_lijst()
+
+    def categorie_objecten(self, cat_id):
+        # Lijst met alle objecten en een vinkje: aangevinkt = zit in deze categorie
+        categorieen = ObjectManager().get_categorieen()
+        cat = next((c for c in categorieen if c["id"] == cat_id), None)
+        if cat is None:
+            return
+        namen = {c["id"]: c["naam"] for c in categorieen}
+
+        venster = Factory.CategorieObjecten()
+        venster.cat_id = cat_id
+        venster.cat_naam = cat["naam"]
+        for obj in ObjectManager().get_all_objects():
+            rij = Factory.CategorieObjectRij()
+            rij.obj_id = obj["id"]
+            rij.titel = obj[1]
+            rij.ids.vink.active = obj["categorie_id"] == cat_id
+            # Zit het nu in een andere categorie? Dan tonen we die (het verhuist als je het aanvinkt)
+            if obj["categorie_id"] not in (None, cat_id):
+                rij.andere = namen.get(obj["categorie_id"], "")
+            venster.ids.lijst.add_widget(rij)
+        venster.open()
+
+    def categorie_objecten_opslaan(self, venster):
+        aangevinkt = [rij.obj_id for rij in venster.ids.lijst.children if rij.ids.vink.active]
+        ObjectManager().zet_objecten_in_categorie(venster.cat_id, aangevinkt)
+        venster.dismiss()
+        self.vul_categorie_lijst()
 
     # ---------- Wachtwoord wijzigen ----------
 

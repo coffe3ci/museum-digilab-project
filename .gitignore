@@ -8,3 +8,6 @@ __pycache__/
 
 # Kivy
 .kivy/
+
+# Ontvangen e-mails en bijlagen (privé, niet op GitHub)
+mails/

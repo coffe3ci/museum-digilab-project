@@ -3,11 +3,16 @@ import os  # Om te controleren of een afbeelding echt bestaat
 from kivy.clock import Clock  # Om het herschikken van de zijkolom één keer per frame te doen
 from kivy.factory import Factory  # Maakt ExtraFoto's aan (gedefinieerd in object_detail_screen.kv)
 from kivy.metrics import dp  # Zet "dp"-waarden om naar pixels
-from kivy.properties import NumericProperty, StringProperty
+from kivy.core.window import Window  # Schermgrootte (voor het voorbeeld in het adminpaneel)
+from kivy.properties import ListProperty, NumericProperty, StringProperty
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scatter import Scatter  # Om het voorbeeld van de pagina te verkleinen
 from kivy.uix.screenmanager import Screen
+from kivy.uix.widget import Widget
 
 from backend.object_manager import ObjectManager
+from frontend.tekst_opmaak import opgemaakte_tekst  # Beschrijving + opmaak -> Kivy-markup
 
 TUSSENRUIMTE = dp(20)  # Ruimte tussen foto's die automatisch onder elkaar staan
 
@@ -65,27 +70,23 @@ class ZijKolom(FloatLayout):
         self.height = laagste
 
 
-class ObjectDetailScreen(Screen):
-    # Eén pagina voor alle objecten: hij vult zichzelf met het object waarop geklikt is.
-    titel = StringProperty("")
-    beschrijving = StringProperty("")
-    afbeelding = StringProperty("")  # Pad naar de afbeelding ("" = geen afbeelding)
+class PaginaInhoud(BoxLayout):
+    # De inhoud van een objectpagina: schilderij (hoofdfoto), titel, beschrijving en extra foto's.
+    # Wordt gebruikt op de echte objectpagina én (verkleind) als voorbeeld in het adminpaneel.
+    # Hoe het eruitziet staat in object_detail_screen.kv (<PaginaInhoud>).
+    titel = StringProperty("")  # Markup (met opmaak)
+    beschrijving = StringProperty("")  # Markup (met opmaak)
+    afbeelding = StringProperty("")  # Pad naar de hoofdfoto ("" = geen afbeelding)
     hoofd_hoogte_deel = NumericProperty(0.35)  # Grootte van de hoofdfoto (zie HOOFD_FORMATEN)
+    boven_ruimte = NumericProperty(dp(70))  # Ruimte bovenaan (op de echte pagina voor de terug-knop)
 
-    def toon_object(self, obj_id):
-        # Haalt het object op uit de database en zet de gegevens op de pagina
-        obj = ObjectManager().get_object(obj_id)
-        if obj is None:
-            return
-
-        self.titel = obj[1]
-        self.beschrijving = obj[2] or ""
-
+    def zet_hoofdfoto(self, pad, formaat):
         # Toon de afbeelding alleen als het bestand echt bestaat
-        self.afbeelding = obj[3] if obj[3] and os.path.exists(obj[3]) else ""
-        # Grootte van de hoofdfoto zoals gekozen in het adminpaneel
-        self.hoofd_hoogte_deel = HOOFD_FORMATEN.get(obj["hoofd_formaat"], 0.35)
+        self.afbeelding = pad if pad and os.path.exists(pad) else ""
+        # Grootte van de hoofdfoto zoals gekozen in het adminpaneel ("Groot" en "groot" mogen allebei)
+        self.hoofd_hoogte_deel = HOOFD_FORMATEN.get((formaat or "normaal").lower(), 0.35)
 
+    def zet_extra_fotos(self, items):
         # Extra afbeeldingen: midden = onder de beschrijving, links/rechts = in een kolom ernaast
         extra_fotos = self.ids.extra_fotos
         kolom_links = self.ids.kolom_links
@@ -93,7 +94,7 @@ class ObjectDetailScreen(Screen):
         for houder in (extra_fotos, kolom_links, kolom_rechts):
             houder.clear_widgets()
 
-        for item in ObjectManager().get_extra_afbeeldingen(obj_id):
+        for item in items:
             if not os.path.exists(item["pad"]):  # Alleen bestanden die echt bestaan
                 continue
 
@@ -117,8 +118,89 @@ class ObjectDetailScreen(Screen):
             else:
                 extra_fotos.add_widget(blok)
 
+
+class ObjectDetailScreen(Screen):
+    # Eén pagina voor alle objecten: hij vult zichzelf met het object waarop geklikt is.
+
+    def toon_object(self, obj_id):
+        # Haalt het object op uit de database en zet de gegevens op de pagina
+        obj = ObjectManager().get_object(obj_id)
+        if obj is None:
+            return
+
+        inhoud = self.ids.inhoud
+        # Titel en beschrijving met de opmaak uit het adminpaneel (vet, schuin, onderstreept, kleur) als markup
+        inhoud.titel = opgemaakte_tekst(obj[1], obj["titel_opmaak"])
+        inhoud.beschrijving = opgemaakte_tekst(obj[2], obj["opmaak"])
+        inhoud.zet_hoofdfoto(obj[3], obj["hoofd_formaat"])
+        inhoud.zet_extra_fotos(ObjectManager().get_extra_afbeeldingen(obj_id))
+
         self.ids.tekst_scroll.scroll_y = 1  # Begin bovenaan de beschrijving
 
     def terug(self):
         # Terug naar het overzicht met alle objecten
         self.manager.current = "objects"
+
+
+class PaginaVoorbeeld(Widget):
+    # Verkleind voorbeeld van de objectpagina (voor het formulier in het adminpaneel).
+    # De pagina wordt opgebouwd op de echte schermgrootte en daarna verkleind (Scatter),
+    # zodat foto's, tekst en kolommen precies dezelfde verhoudingen hebben als op de echte pagina.
+    titel = StringProperty("")  # Markup (met opmaak)
+    beschrijving = StringProperty("")  # Markup (met opmaak)
+    afbeelding = StringProperty("")  # Pad naar de hoofdfoto
+    hoofd_formaat = StringProperty("normaal")  # "klein", "normaal", "groot" of "origineel"
+    extra = ListProperty([])  # Extra afbeeldingen (dicts zoals in ObjectManager.get_extra_afbeeldingen)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.inhoud = PaginaInhoud(boven_ruimte=dp(30))  # Geen terug-knop, dus minder ruimte bovenaan
+        self.verkleiner = Scatter(do_rotation=False, do_scale=False, do_translation=False,
+                                  size_hint=(None, None))
+        self.verkleiner.add_widget(self.inhoud)
+        self.add_widget(self.verkleiner)
+        self.on_titel()
+        self.on_beschrijving()
+
+        # Foto's opnieuw opbouwen kost meer tijd: alleen als de foto's veranderen, niet bij elke letter
+        self._fotos_later = Clock.create_trigger(self._zet_fotos)
+        self.bind(afbeelding=self._fotos_later, hoofd_formaat=self._fotos_later, extra=self._fotos_later)
+        self._fotos_later()
+
+        self._schik_later = Clock.create_trigger(self._schik)
+        self.bind(pos=self._schik_later, width=self._schik_later)
+        self.inhoud.bind(height=self._schik_later)
+        Window.bind(size=self._schik_later)
+
+    # (Kivy kan deze al aanroepen voordat __init__ klaar is; dan bestaat self.inhoud nog niet)
+    def on_titel(self, *args):
+        if hasattr(self, "inhoud"):
+            self.inhoud.titel = self.titel or "[color=#999999](geen titel)[/color]"
+
+    def on_beschrijving(self, *args):
+        if hasattr(self, "inhoud"):
+            self.inhoud.beschrijving = self.beschrijving or "[color=#999999](nog geen beschrijving)[/color]"
+
+    def _zet_fotos(self, *args):
+        self.inhoud.zet_hoofdfoto(self.afbeelding, self.hoofd_formaat)
+        self.inhoud.zet_extra_fotos(self.extra)
+
+    def _schik(self, *args):
+        # De pagina is zo breed als het echte scherm; het voorbeeld verkleint hem tot de eigen breedte
+        breedte = Window.width
+        schaal = self.width / breedte if breedte else 1
+        self.inhoud.width = breedte
+        self.verkleiner.scale = schaal
+        self.verkleiner.size = (breedte, self.inhoud.height)
+        self.verkleiner.pos = self.pos
+        self.height = self.inhoud.height * schaal
+
+    # Het voorbeeld is alleen om naar te kijken: aanrakingen gaan door naar het formulier (scrollen)
+    def on_touch_down(self, touch):
+        return False
+
+    def on_touch_move(self, touch):
+        return False
+
+    def on_touch_up(self, touch):
+        return False

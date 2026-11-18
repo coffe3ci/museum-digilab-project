@@ -91,6 +91,66 @@
                 radius: [15]
 
 
+# Pijlknop < of > naast de objectenwand: rond, zelfde kleuren als de terug-knop.
+# Vaag en niet klikbaar als je niet verder kunt (eerste/laatste 9).
+<PijlKnop@Button>:
+    font_size: "24sp"
+    color: 0.2, 0.2, 0.2, 1
+    disabled_color: 0.2, 0.2, 0.2, 1
+    size_hint: None, None
+    size: "52dp", "52dp"
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_disabled_down: ""
+    background_color: 0, 0, 0, 0
+    # (Hoe doorzichtig de pijl is, regelt object_screen.py: werk_navigatie_bij)
+    canvas.before:
+        Color:
+            rgba: (210/255, 200/255, 188/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+
+# Ronde paginanummer-knop onder de objectenwand.
+# actief = True: dit zijn de 9 objecten die je nu ziet (bruin met witte tekst).
+<PaginaKnop@Button>:
+    actief: False
+    font_name: "Tekst"
+    font_size: "15sp"
+    bold: True
+    color: (1, 1, 1, 1) if self.actief else (125/255, 67/255, 53/255, 1)
+    size_hint: None, None
+    size: "36dp", "36dp"
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        # Dunne lichte ring om de actieve knop
+        Color:
+            rgba: (125/255, 67/255, 53/255, 0.25) if self.actief else (0, 0, 0, 0)
+        Ellipse:
+            pos: self.x - dp(4), self.y - dp(4)
+            size: self.width + dp(8), self.height + dp(8)
+        # Het rondje zelf
+        Color:
+            rgba: ((100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)) if self.actief else ((215/255, 204/255, 190/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1))
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+
+# "..." tussen de paginanummers als er heel veel pagina's zijn
+<PaginaPuntjes@Label>:
+    text: "..."
+    font_name: "Tekst"
+    font_size: "15sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint: None, None
+    size: "24dp", "36dp"
+
 
 <ObjectScreen>:
     FloatLayout:
@@ -113,10 +173,14 @@
         # 3. De objectenwand: je ziet steeds 9 objecten (3x3).
         #    Eén keer vegen naar links/rechts schuift (met animatie) naar de volgende/vorige 9.
         #    Het vegen zelf staat in object_screen.py (class VeegWand).
+        #    (Iets hoger dan eerst, zodat de paginanummers eronder passen.)
         VeegWand:
             id: veegwand
-            size_hint: 0.8, 0.75
-            pos_hint: {"center_x": 0.5, "y": 0.05}
+            size_hint: 0.8, 0.69
+            pos_hint: {"center_x": 0.5, "y": 0.11}
+            # Pijlen en nummers bijwerken als je naar andere 9 gaat (ook bij vegen)
+            on_blok: root.werk_navigatie_bij()
+            on_aantal_blokken: root.werk_navigatie_bij()
 
             # Blokken van 3x3 naast elkaar (worden in object_screen.py aangemaakt).
             # Schuift naar links mee met de "positie" van de VeegWand.
@@ -130,12 +194,35 @@
                 y: self.parent.y
                 spacing: "15dp"
 
+        # Pijl links: naar de vorige 9 objecten
+        PijlKnop:
+            id: pijl_links
+            text: "<"
+            pos_hint: {"center_x": 0.05, "center_y": 0.11 + 0.69 / 2}
+            on_release: veegwand.ga_naar_blok(veegwand.blok - 1)
 
-        # 4. Onzichtbare admin-knop (rechtsboven): 4x snel tikken opent het inlogscherm
+        # Pijl rechts: naar de volgende 9 objecten
+        PijlKnop:
+            id: pijl_rechts
+            text: ">"
+            pos_hint: {"center_x": 0.95, "center_y": 0.11 + 0.69 / 2}
+            on_release: veegwand.ga_naar_blok(veegwand.blok + 1)
+
+        # Paginanummers onderin (1 2 3 4 ...): worden in object_screen.py aangemaakt,
+        # zoveel als er pagina's van 9 objecten zijn
+        BoxLayout:
+            id: pagina_nummers
+            size_hint: None, None
+            width: self.minimum_width
+            height: "44dp"
+            spacing: "10dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.055}
+
+        # 4. Onzichtbare admin-knop (rechtsboven in de hoek): 4x snel tikken opent het inlogscherm
         Button:
             size_hint: None, None
-            size: "55dp", "55dp"
-            pos_hint: {"right": 0.97, "top": 0.97}
+            size: "100dp", "100dp"
+            pos_hint: {"right": 1, "top": 1}
             background_normal: ""
             background_down: ""
             background_color: 0, 0, 0, 0

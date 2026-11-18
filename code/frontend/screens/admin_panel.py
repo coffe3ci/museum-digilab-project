@@ -8,6 +8,8 @@ from kivy.uix.screenmanager import Screen # Basisklasse voor schermen
 from kivy.utils import platform  # "win", "macosx", "linux", "android" of "ios"
 
 from backend.object_manager import ObjectManager # Haalt de objecten uit de database
+from frontend.tekst_opmaak import OpmaakVeld  # noqa: F401  (invoerveld met opmaak, gebruikt in admin_panel.kv)
+from frontend.screens.object_detail_screen import PaginaVoorbeeld  # noqa: F401  (voorbeeld van de objectpagina)
 
 AFBEELDING_MAP = "assets/objects_img"  # hier worden de afbeeldingen naartoe gekopieerd
 
@@ -58,8 +60,8 @@ class AdminPanelScreen(Screen):
         formulier = Factory.ObjectFormulier()
         formulier.obj_id = obj_id # Onthoudt welk object bewerkt wordt
         formulier.ids.nummer.text = str(obj["id"]) # Vult de huidige gegevens in
-        formulier.ids.titel.text = obj[1]
-        formulier.ids.beschrijving.text = obj[2]
+        formulier.ids.titel.zet_inhoud(obj[1], obj["titel_opmaak"])  # tekst + opmaak (vet, kleur, ...)
+        formulier.ids.beschrijving.zet_inhoud(obj[2], obj["opmaak"])
         formulier.afbeelding = obj[3] or ""
         formulier.ids.hoofd_formaat.text = (obj["hoofd_formaat"] or "normaal").capitalize()  # "groot" -> "Groot"
         formulier.extra_afbeeldingen = ObjectManager().get_extra_afbeeldingen(obj_id)
@@ -67,8 +69,8 @@ class AdminPanelScreen(Screen):
         formulier.open()
 
     def formulier_opslaan(self, formulier):
-        titel = formulier.ids.titel.text.strip()
-        beschrijving = formulier.ids.beschrijving.text.strip()
+        titel, titel_opmaak = formulier.ids.titel.inhoud()  # tekst en opmaak horen bij elkaar
+        beschrijving, opmaak = formulier.ids.beschrijving.inhoud()
 
         # Titel en beschrijving zijn verplicht in de database
         if not titel or not beschrijving:
@@ -86,10 +88,12 @@ class AdminPanelScreen(Screen):
         hoofd_formaat = formulier.ids.hoofd_formaat.text.lower()  # grootte van de hoofdfoto op de objectpagina
 
         if formulier.obj_id == 0:
-            obj_id = ObjectManager().add_object(titel, beschrijving, afbeelding, hoofd_formaat) # Nieuw object (achteraan)
+            obj_id = ObjectManager().add_object(  # Nieuw object (achteraan)
+                titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak)
         else:
             obj_id = formulier.obj_id
-            ObjectManager().update_object(obj_id, titel, beschrijving, afbeelding, hoofd_formaat) # Bestaand object
+            ObjectManager().update_object(  # Bestaand object
+                obj_id, titel, beschrijving, afbeelding, hoofd_formaat, opmaak, titel_opmaak)
 
         # Extra afbeeldingen opslaan (voor het ruilen, dan verhuizen ze vanzelf mee)
         ObjectManager().zet_extra_afbeeldingen(obj_id, formulier.extra_afbeeldingen)
@@ -150,6 +154,20 @@ class AdminPanelScreen(Screen):
         start = fotomap()
         kiezer.ids.kiezer.path = start if os.path.isdir(start) else os.path.expanduser("~")
         kiezer.open()
+
+    def tekst_opmaken(self, formulier, actie, kleur=None):
+        # Knoppen boven de beschrijving: actie = "b" (vet), "i" (schuin), "u" (onderstreept),
+        # "kleur" of "wis". Het stuk tekst hangt af van de keuze bij "Toepassen op".
+        # Werkt op het veld (titel of beschrijving) waarin het laatst is geklikt.
+        modus = formulier.ids.opmaak_modus.text
+        veld = formulier.ids[formulier.opmaak_doel]  # "titel" of "beschrijving"
+        gelukt = veld.pas_opmaak_toe(modus, actie, kleur)
+        if gelukt:
+            formulier.ids.foutmelding.text = ""
+        elif modus == "Woorden (selectie)":
+            formulier.ids.foutmelding.text = f"Selecteer eerst woorden in de {formulier.opmaak_doel} (of zet de cursor in een woord)."
+        else:
+            formulier.ids.foutmelding.text = f"Klik eerst in de {formulier.opmaak_doel} op de plek die je wilt opmaken."
 
     def kies_afbeelding(self, formulier):
         self.open_kiezer(formulier, "hoofd")

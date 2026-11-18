@@ -1,4 +1,7 @@
 #:import Window kivy.core.window.Window
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import KLEUREN frontend.tekst_opmaak.KLEUREN
+#:import MODI frontend.tekst_opmaak.MODI
 
 # ============================================================
 # OBJECT ITEM
@@ -144,6 +147,77 @@
         Line:
             rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
             width: 1.1
+
+# Invoerveld voor de beschrijving: ziet eruit als FormulierVeld, maar onthoudt ook de opmaak.
+# De klasse staat in frontend/tekst_opmaak.py (OpmaakVeld).
+<OpmaakVeld>:
+    font_name: "Tekst"
+    font_size: "14sp"
+    padding: ["10dp", "9dp"]
+    size_hint_y: None
+    height: "130dp"
+    background_normal: ""
+    background_active: ""
+    background_color: 0, 0, 0, 0
+    foreground_color: 0.1, 0.1, 0.1, 1
+    hint_text_color: 0.6, 0.6, 0.6, 1
+    cursor_color: 125/255, 67/255, 53/255, 1
+    selection_color: 125/255, 67/255, 53/255, 0.3
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+        Color:
+            rgba: (125/255, 67/255, 53/255, 1) if self.focus else (215/255, 208/255, 196/255, 1)
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
+            width: 1.1
+
+# Kleine vierkante knop in de opmaakbalk (B, I, U)
+<OpmaakKnop@Button>:
+    markup: True
+    font_name: "Tekst"
+    font_size: "15sp"
+    color: 125/255, 67/255, 53/255, 1
+    size_hint: None, None
+    size: "34dp", "34dp"
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6]
+
+# Rond kleurvakje in de opmaakbalk. kleur = "#rrggbb", of "" voor de standaard tekstkleur.
+<KleurKnop@Button>:
+    kleur: ""
+    size_hint: None, None
+    size: "26dp", "26dp"
+    pos_hint: {"center_y": 0.5}
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        # Lichte rand, iets groter als je erop drukt
+        Color:
+            rgba: 215/255, 208/255, 196/255, 1
+        Ellipse:
+            pos: (self.x - dp(3), self.y - dp(3)) if self.state == "down" else (self.x - dp(1.5), self.y - dp(1.5))
+            size: (self.width + dp(6), self.height + dp(6)) if self.state == "down" else (self.width + dp(3), self.height + dp(3))
+        Color:
+            # Standaard = de gewone tekstkleur van de objectpagina (donkergrijs)
+            rgba: get_color_from_hex(self.kleur) if self.kleur else (0.2, 0.2, 0.2, 1)
+        Ellipse:
+            pos: self.pos
+            size: self.size
 
 # Klein grijs kopje boven een veld
 <VeldLabel@Label>:
@@ -563,6 +637,7 @@
 
     afbeelding: ""
     extra_afbeeldingen: []   # extra afbeeldingen (dicts met pad, titel, breedte, hoogte, ...)
+    opmaak_doel: "beschrijving"   # op welk veld de opmaakknoppen werken: "titel" of "beschrijving"
 
     title: "Object toevoegen" if self.obj_id == 0 else "Object bewerken"
     title_font: "Titel"
@@ -593,8 +668,127 @@
                 height: self.minimum_height
                 spacing: "10dp"
 
-                # Nummer en titel naast elkaar
+                # Opmaak, nummer, titel en beschrijving
                 Kaart:
+                    # ---------- Tekst opmaken (werkt op titel en beschrijving) ----------
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "22dp"
+                        spacing: "6dp"
+
+                        BlokKop:
+                            text: "Tekst opmaken"
+                            size_hint_x: None
+                            width: self.texture_size[0]
+                            text_size: None, None
+                            height: "22dp"
+
+                        # Laat zien op welk veld de knoppen werken (het veld waarin je het laatst klikte)
+                        VeldLabel:
+                            text: "voor: " + ("Titel" if root.opmaak_doel == "titel" else "Beschrijving")
+                            height: "22dp"
+                            shorten: True
+
+                    # De knoppen staan in groepjes. Past een groepje niet meer op de regel
+                    # (smal scherm), dan gaat het naar de volgende regel.
+                    StackLayout:
+                        orientation: "lr-tb"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: "8dp"
+
+                        # 1. Waarop: geselecteerde woorden, zin, alinea of de hele tekst
+                        BoxLayout:
+                            size_hint: None, None
+                            width: min(dp(258), self.parent.width)
+                            height: "34dp"
+                            spacing: "8dp"
+
+                            VeldLabel:
+                                text: "Toepassen op"
+                                size_hint_x: None
+                                width: "90dp"
+                                height: "34dp"
+
+                            Spinner:
+                                id: opmaak_modus
+                                text: MODI[0]
+                                values: MODI
+                                option_cls: "PositieOptie"
+                                font_name: "Tekst"
+                                font_size: "13sp"
+                                bold: True
+                                color: 125/255, 67/255, 53/255, 1
+                                shorten: True
+                                text_size: self.width - dp(10), None
+                                halign: "center"
+                                background_normal: ""
+                                background_down: ""
+                                background_color: 0, 0, 0, 0
+                                canvas.before:
+                                    Color:
+                                        rgba: 232/255, 224/255, 212/255, 1
+                                    RoundedRectangle:
+                                        pos: self.pos
+                                        size: self.size
+                                        radius: [8]
+
+                        # 2. Vet, schuin, onderstreept
+                        BoxLayout:
+                            size_hint: None, None
+                            width: self.minimum_width
+                            height: "34dp"
+                            spacing: "6dp"
+
+                            OpmaakKnop:
+                                text: "[b]B[/b]"
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "b")
+                            OpmaakKnop:
+                                text: "[i]I[/i]"
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "i")
+                            OpmaakKnop:
+                                text: "[u]U[/u]"
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "u")
+
+                        # 3. Eén rondje per kleur (lijst KLEUREN in frontend/tekst_opmaak.py)
+                        BoxLayout:
+                            size_hint: None, None
+                            width: self.minimum_width
+                            height: "34dp"
+                            spacing: "8dp"
+                            padding: ["4dp", 0]
+
+                            KleurKnop:
+                                kleur: KLEUREN[0][1] or ""
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", None)
+                            KleurKnop:
+                                kleur: KLEUREN[1][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[2][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[3][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[4][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[5][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[6][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+
+                        # 4. Alle opmaak eraf
+                        ZachteKnop:
+                            text: "Wis opmaak"
+                            font_size: "12sp"
+                            size_hint: None, None
+                            size: "90dp", "34dp"
+                            on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "wis")
+
+                    # ---------- Nummer en titel naast elkaar ----------
                     BoxLayout:
                         size_hint_y: None
                         height: "56dp"
@@ -621,16 +815,24 @@
                             VeldLabel:
                                 text: "Titel"
 
-                            FormulierVeld:
+                            OpmaakVeld:
                                 id: titel
                                 multiline: False
+                                height: "38dp"
+                                # Klik in de titel: de opmaakknoppen werken nu op de titel
+                                on_focus: if self.focus: root.opmaak_doel = "titel"
 
                     VeldLabel:
                         text: "Beschrijving"
 
-                    FormulierVeld:
+                    OpmaakVeld:
                         id: beschrijving
-                        height: "90dp"
+                        hint_text: "Typ hier de beschrijving. Selecteer woorden of klik in een zin/alinea om op te maken."
+                        # Klik in de beschrijving: de opmaakknoppen werken nu op de beschrijving
+                        on_focus: if self.focus: root.opmaak_doel = "beschrijving"
+
+                    VeldLabel:
+                        text: "Het voorbeeld van de hele pagina (met afbeeldingen) staat onderaan."
 
                 # Hoofdafbeelding: klein voorbeeld + knoppen op één regel
                 Kaart:
@@ -737,6 +939,20 @@
                         height: self.minimum_height
                         spacing: "5dp"
                         # De titel-knoppen worden in admin_panel.py aangemaakt (toon_extra_afbeeldingen)
+
+                # Voorbeeld van de hele objectpagina: hoofdfoto, titel, beschrijving en extra foto's,
+                # precies zoals op het scherm, maar verkleind. Verandert mee terwijl je het formulier invult.
+                # (PaginaVoorbeeld staat in object_detail_screen.py)
+                Kaart:
+                    BlokKop:
+                        text: "Voorbeeld van de objectpagina"
+
+                    PaginaVoorbeeld:
+                        titel: titel.voorbeeld
+                        beschrijving: beschrijving.voorbeeld
+                        afbeelding: root.afbeelding
+                        hoofd_formaat: hoofd_formaat.text
+                        extra: root.extra_afbeeldingen
 
         FoutLabel:
             id: foutmelding

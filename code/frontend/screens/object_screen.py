@@ -3,6 +3,7 @@ import time  # Om te meten hoe snel twee tikken na elkaar komen
 
 from kivy.animation import Animation  # Voor het soepel doorschuiven naar de volgende 9
 from kivy.core.image import Image as CoreImage  # Laadt een afbeelding als textuur om zelf te tekenen
+from kivy.factory import Factory  # Maakt PaginaKnoppen aan (gedefinieerd in object_screen.kv)
 from kivy.metrics import dp
 from kivy.properties import NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
@@ -20,6 +21,23 @@ ADMIN_TIKKEN = 4  # Zo vaak snel achter elkaar tikken om het inlogscherm te open
 VEEG_AFSTAND = 40  # Zo ver (in dp) moet je minstens vegen om naar het volgende blok te gaan
 TIK_AFSTAND = 15  # Minder bewogen dan dit (in dp) = een tik (object openen) in plaats van een veeg
 ANIMATIE_TIJD = 0.35  # Duur van het doorschuiven in seconden
+MAX_PAGINAKNOPPEN = 7  # Bij meer pagina's worden niet alle nummers getoond (dan komt er "...")
+
+
+def zichtbare_paginas(huidig, totaal):
+    # Geeft de paginanummers die onderin getoond worden; None = "..." (overgeslagen nummers).
+    # Tot 7 pagina's: allemaal. Daarboven: de eerste, de laatste en de huidige met zijn buren,
+    # zodat de rij nummers nooit te breed wordt. Voorbeeld: pagina 6 van 12 -> 1 ... 5 6 7 ... 12
+    if totaal <= MAX_PAGINAKNOPPEN:
+        return list(range(1, totaal + 1))
+
+    nummers = sorted({1, totaal, huidig - 1, huidig, huidig + 1} & set(range(1, totaal + 1)))
+    resultaat = []
+    for nr in nummers:
+        if resultaat and nr - resultaat[-1] > 1:
+            resultaat.append(None)  # Gat tussen twee nummers
+        resultaat.append(nr)
+    return resultaat
 
 
 class ObjectKnop(ButtonBehavior, FloatLayout):
@@ -194,6 +212,41 @@ class ObjectScreen(Screen):
 
         veegwand.aantal_blokken = len(starts)
         veegwand.ga_naar_blok(0, animatie=False)  # Begin altijd bij de eerste 9
+        self.werk_navigatie_bij()  # Pijlen en nummers kloppend maken (ook als blok al 0 was)
+
+    def werk_navigatie_bij(self):
+        # Zet de pijlen < > aan/uit en maakt onderin de paginanummers (1 2 3 ...).
+        # Wordt vanzelf aangeroepen als je naar andere 9 objecten gaat (pijl, nummer of vegen)
+        # en als het aantal pagina's verandert (bijv. nieuw object in het adminpaneel).
+        if "veegwand" not in self.ids:  # Scherm wordt nog opgebouwd
+            return
+        veegwand = self.ids.veegwand
+        huidig = veegwand.blok
+        totaal = veegwand.aantal_blokken
+
+        # Pijlen: vaag en uit als je al op de eerste of laatste pagina bent, onzichtbaar bij maar 1 pagina
+        for pijl, kan_niet in ((self.ids.pijl_links, huidig == 0),
+                               (self.ids.pijl_rechts, huidig >= totaal - 1)):
+            pijl.disabled = kan_niet
+            if totaal <= 1:
+                pijl.opacity = 0
+            else:
+                pijl.opacity = 0.3 if kan_niet else 1
+
+        # Paginanummers: precies zoveel als er pagina's zijn (bij 1 pagina geen nummers)
+        balk = self.ids.pagina_nummers
+        balk.clear_widgets()
+        if totaal <= 1:
+            return
+        for nr in zichtbare_paginas(huidig + 1, totaal):
+            if nr is None:
+                balk.add_widget(Factory.PaginaPuntjes())  # "..." bij heel veel pagina's
+                continue
+            knop = Factory.PaginaKnop(text=str(nr))
+            knop.actief = nr == huidig + 1  # De pagina die je nu ziet is bruin
+            # nr=nr zorgt dat elke knop zijn eigen paginanummer onthoudt (blok telt vanaf 0)
+            knop.bind(on_release=lambda btn, nr=nr: veegwand.ga_naar_blok(nr - 1))
+            balk.add_widget(knop)
 
     def maak_knop(self, obj):
         # Maakt één objectknop voor het gegeven object.

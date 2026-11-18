@@ -91,50 +91,6 @@
                 radius: [15]
 
 
-# Ronde paginaknop onder de objectenwand (ook gebruikt voor de pijltjes < en >).
-# actief = True: dit is de pagina die je nu ziet (bruin met witte tekst).
-<PaginaKnop@Button>:
-    actief: False
-
-    font_name: "Tekst"
-    font_size: "15sp"
-    bold: True
-    color: (1, 1, 1, 1) if self.actief else (125/255, 67/255, 53/255, 1)
-    size_hint: None, None
-    size: "40dp", "40dp"
-    background_normal: ""
-    background_down: ""
-    background_disabled_normal: ""
-    background_disabled_down: ""
-    background_color: 0, 0, 0, 0
-    disabled_color: 125/255, 67/255, 53/255, 1
-    opacity: 0.35 if self.disabled else 1   # vaag als je niet verder kunt (eerste/laatste pagina)
-
-    canvas.before:
-        # Dunne lichte ring om de actieve knop
-        Color:
-            rgba: (125/255, 67/255, 53/255, 0.25) if self.actief else (0, 0, 0, 0)
-        Ellipse:
-            pos: self.x - dp(4), self.y - dp(4)
-            size: self.width + dp(8), self.height + dp(8)
-
-        # Het rondje zelf
-        Color:
-            rgba: ((100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)) if self.actief else ((215/255, 204/255, 190/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1))
-        Ellipse:
-            pos: self.pos
-            size: self.size
-
-# "..." tussen de paginanummers als er veel pagina's zijn
-<PaginaPuntjes@Label>:
-    text: "..."
-    font_name: "Tekst"
-    font_size: "15sp"
-    bold: True
-    color: 125/255, 67/255, 53/255, 1
-    size_hint: None, None
-    size: "30dp", "40dp"
-
 
 <ObjectScreen>:
     FloatLayout:
@@ -145,28 +101,37 @@
             Rectangle:
                 pos: self.pos
                 size: self.size
-                # 2. Button Layout
-        BoxLayout:
-            orientation: "vertical"
+        # 2. Logo van het bedrijf, midden boven de objecten (zelfde logo als op de homepagina)
+        Image:
+            source: "assets/images/logo.png"
+            fit_mode: "contain"   # logo houdt zijn vorm
+            # Zelfde vlak als eerst (40% breed, 13% hoog), maar 19dp kleiner
+            size_hint: None, None
+            size: self.parent.width * 0.4 - dp(19), self.parent.height * 0.13 - dp(19)
+            pos_hint: {"center_x": 0.5, "top": 0.96}
+
+        # 3. De objectenwand: je ziet steeds 9 objecten (3x3).
+        #    Eén keer vegen naar links/rechts schuift (met animatie) naar de volgende/vorige 9.
+        #    Het vegen zelf staat in object_screen.py (class VeegWand).
+        VeegWand:
+            id: veegwand
             size_hint: 0.8, 0.75
             pos_hint: {"center_x": 0.5, "y": 0.05}
-            spacing: "20dp"
 
-            GridLayout:
-                id: grid
-                cols: 3
+            # Blokken van 3x3 naast elkaar (worden in object_screen.py aangemaakt).
+            # Schuift naar links mee met de "positie" van de VeegWand.
+            BoxLayout:
+                id: wand
+                orientation: "horizontal"
+                size_hint: None, None
+                width: self.minimum_width
+                height: self.parent.height
+                x: self.parent.x - self.parent.positie
+                y: self.parent.y
                 spacing: "15dp"
 
-            # Paginaknoppen: < 1 2 3 > (worden in object_screen.py aangemaakt)
-            BoxLayout:
-                id: pagina_knoppen
-                size_hint_y: None
-                height: "40dp"
-                spacing: "10dp"
 
-
-
-        # 3. Onzichtbare admin-knop (rechtsboven): 2x snel tikken opent het inlogscherm
+        # 4. Onzichtbare admin-knop (rechtsboven): 4x snel tikken opent het inlogscherm
         Button:
             size_hint: None, None
             size: "55dp", "55dp"
@@ -176,7 +141,7 @@
             background_color: 0, 0, 0, 0
             on_release: root.admin_tik()
         
-        # 4. Terug-knop (Ronde knop linksboven)
+        # 5. Terug-knop (Ronde knop linksboven)
         Button:
             text: "<"
             font_size: "22sp"

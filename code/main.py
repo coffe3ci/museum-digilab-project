@@ -13,6 +13,8 @@ from frontend.fonts import registreer_fonts  # De lettertypes "Titel", "Tekst" e
 registreer_fonts()  # Moet gebeuren voordat de .kv-bestanden geladen worden
 
 class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft van Kivy App
+    title = "Stadsmuseum Veenendaal"  # Naam bovenaan het venster (in plaats van "Museum")
+    icon = "assets/images/icoon.png"  # Pictogram linksboven en in de taakbalk (beeldmerk van het museum)
 
     def build(self):  # De methode die de gebruikersinterface bouwt en initialiseert bij het opstarten
         Builder.load_file(  # Laad het lay-outbestand voor het startscherm

@@ -2,16 +2,19 @@ import os      # om te controleren of bestanden en mappen bestaan
 import shutil  # om bestanden te kopiëren
 import time    # voor een unieke bestandsnaam
 
-from kivy.clock import mainthread  # Zorgt dat code op de hoofdthread van Kivy draait
+from kivy.clock import Clock, mainthread  # mainthread: code op de hoofdthread van Kivy laten draaien
 from kivy.factory import Factory # Hiermee maken we ObjectItems aan (gedefinieerd in admin_panel.kv)
 from kivy.uix.screenmanager import Screen # Basisklasse voor schermen
 from kivy.utils import platform  # "win", "macosx", "linux", "android" of "ios"
 
+from backend.admin_manager import AdminManager  # Wachtwoord controleren en veranderen
 from backend.object_manager import ObjectManager # Haalt de objecten uit de database
 from frontend.tekst_opmaak import OpmaakVeld  # noqa: F401  (invoerveld met opmaak, gebruikt in admin_panel.kv)
 from frontend.screens.object_detail_screen import PaginaVoorbeeld  # noqa: F401  (voorbeeld van de objectpagina)
 
 AFBEELDING_MAP = "assets/objects_img"  # hier worden de afbeeldingen naartoe gekopieerd
+ADMIN_GEBRUIKER = "admin"  # De beheerder (zelfde gebruikersnaam als in admin_screen.py)
+MIN_WACHTWOORD_LENGTE = 8  # Een nieuw wachtwoord moet minstens zo lang zijn
 
 
 def fotomap():
@@ -117,6 +120,40 @@ class AdminPanelScreen(Screen):
 
     def uitloggen(self):
         self.manager.current = "admin" # Stuurt beheerder terug naar inlogscherm
+
+    # ---------- Wachtwoord wijzigen ----------
+
+    def open_wachtwoord_formulier(self):
+        # Opent de pop-up om het wachtwoord van de adminpagina te veranderen (WachtwoordFormulier in admin_panel.kv)
+        Factory.WachtwoordFormulier().open()
+
+    def wachtwoord_opslaan(self, formulier):
+        # Controleert de drie velden en slaat het nieuwe wachtwoord (gehasht) op
+        huidig = formulier.ids.huidig.text
+        nieuw = formulier.ids.nieuw.text
+        herhaal = formulier.ids.herhaal.text
+        formulier.ids.gelukt.text = ""
+
+        fout = None
+        if not AdminManager().login(ADMIN_GEBRUIKER, huidig):
+            fout = "Het huidige wachtwoord klopt niet."
+        elif len(nieuw) < MIN_WACHTWOORD_LENGTE:
+            fout = f"Het nieuwe wachtwoord moet minstens {MIN_WACHTWOORD_LENGTE} tekens hebben."
+        elif nieuw != herhaal:
+            fout = "De twee nieuwe wachtwoorden zijn niet hetzelfde."
+        elif nieuw == huidig:
+            fout = "Het nieuwe wachtwoord is hetzelfde als het huidige."
+
+        if fout:
+            formulier.ids.foutmelding.text = fout
+            return
+
+        AdminManager().verander_wachtwoord(ADMIN_GEBRUIKER, nieuw)
+        formulier.ids.foutmelding.text = ""
+        formulier.ids.gelukt.text = "Wachtwoord gewijzigd!"
+        for veld in ("huidig", "nieuw", "herhaal"):
+            formulier.ids[veld].text = ""  # Wachtwoorden niet in de velden laten staan
+        Clock.schedule_once(lambda dt: formulier.dismiss(), 1.2)  # Melding even laten zien, dan sluiten
 
     def open_kiezer(self, formulier, doel):
         # Opent de fotokiezer van het apparaat zelf (via plyer):

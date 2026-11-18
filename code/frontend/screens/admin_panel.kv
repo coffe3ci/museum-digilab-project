@@ -1188,7 +1188,7 @@
 
 
         # ====================================================
-        # UITLOGGEN
+        # WACHTWOORD WIJZIGEN EN UITLOGGEN
         # ====================================================
 
         AnchorLayout:
@@ -1198,31 +1198,144 @@
             anchor_x: "center"
             anchor_y: "center"
 
-            Button:
-                text: "Uitloggen"
-                font_name: "Tekst"
-                font_size: "15sp"
-                bold: True
-                color: 125/255, 67/255, 53/255, 1
-
+            BoxLayout:
                 size_hint: None, None
-                size: "140dp", "44dp"
+                width: self.minimum_width
+                height: "44dp"
+                spacing: "12dp"
 
-                background_normal: ""
-                background_down: ""
-                background_color: 0, 0, 0, 0
+                # Opent de pop-up om het wachtwoord van de adminpagina te veranderen
+                Button:
+                    text: "Wachtwoord wijzigen"
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
 
-                on_release:
-                    root.uitloggen()
+                    size_hint: None, None
+                    size: "190dp", "44dp"
 
-                canvas.before:
-                    Color:
-                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
 
-                    RoundedRectangle:
-                        pos: self.pos
-                        size: self.size
-                        radius: [dp(8)]
+                    on_release:
+                        root.open_wachtwoord_formulier()
+
+                    canvas.before:
+                        Color:
+                            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
+                Button:
+                    text: "Uitloggen"
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+
+                    size_hint: None, None
+                    size: "140dp", "44dp"
+
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
+
+                    on_release:
+                        root.uitloggen()
+
+                    canvas.before:
+                        Color:
+                            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
+
+# ============================================================
+# WACHTWOORD WIJZIGEN (pop-up)
+# ============================================================
+
+<WachtwoordFormulier@Popup>:
+    title: "Wachtwoord wijzigen"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(420))
+    height: min(Window.height * 0.9, dp(390))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Kaart:
+            VeldLabel:
+                text: "Huidig wachtwoord"
+            FormulierVeld:
+                id: huidig
+                multiline: False
+                password: True   # toont puntjes in plaats van letters
+                write_tab: False  # Tab gaat naar het volgende veld
+
+            VeldLabel:
+                text: "Nieuw wachtwoord (minstens 8 tekens)"
+            FormulierVeld:
+                id: nieuw
+                multiline: False
+                password: True
+                write_tab: False
+
+            VeldLabel:
+                text: "Herhaal nieuw wachtwoord"
+            FormulierVeld:
+                id: herhaal
+                multiline: False
+                password: True
+                write_tab: False
+                on_text_validate: app.root.get_screen("admin_panel").wachtwoord_opslaan(root)   # Enter = opslaan
+
+        Widget:   # lege ruimte
+
+        FoutLabel:
+            id: foutmelding
+
+        # Groene melding als het gelukt is
+        Label:
+            id: gelukt
+            text: ""
+            font_name: "Klein"
+            font_size: "13sp"
+            bold: True
+            color: 0.18, 0.49, 0.20, 1
+            size_hint_y: None
+            height: "18dp" if self.text else 0
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").wachtwoord_opslaan(root)
 
 # ============================================================
 # AFBEELDING KIEZEN (pop-up)

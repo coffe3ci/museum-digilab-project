@@ -53,6 +53,9 @@ registreer_fonts()
 class MuseumApp(App):
     # Dit is de hoofdklasse van de Kivy-applicatie.
 
+    title = "Stadsmuseum Veenendaal"  # Naam bovenaan het venster
+    icon = "assets/images/icoon.png"  # Pictogram linksboven en in de taakbalk (beeldmerk van het museum)
+
 
     # ========================================================
     # KV-BESTANDEN

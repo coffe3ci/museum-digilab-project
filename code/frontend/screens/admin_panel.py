@@ -2,12 +2,25 @@ import os      # om te controleren of bestanden en mappen bestaan
 import shutil  # om bestanden te kopiëren
 import time    # voor een unieke bestandsnaam
 
+from kivy.clock import mainthread  # Zorgt dat code op de hoofdthread van Kivy draait
 from kivy.factory import Factory # Hiermee maken we ObjectItems aan (gedefinieerd in admin_panel.kv)
 from kivy.uix.screenmanager import Screen # Basisklasse voor schermen
+from kivy.utils import platform  # "win", "macosx", "linux", "android" of "ios"
 
 from backend.object_manager import ObjectManager # Haalt de objecten uit de database
 
 AFBEELDING_MAP = "assets/objects_img"  # hier worden de afbeeldingen naartoe gekopieerd
+
+
+def fotomap():
+    # Geeft de map met foto's van deze computer (Windows: "Afbeeldingen", ook als die in OneDrive staat)
+    if platform == "win":
+        try:
+            from win32com.shell import shell, shellcon
+            return shell.SHGetFolderPath(0, shellcon.CSIDL_MYPICTURES, None, 0)
+        except Exception:
+            pass
+    return os.path.join(os.path.expanduser("~"), "Pictures")
 
 class AdminPanelScreen(Screen):
     def on_enter(self):
@@ -102,14 +115,39 @@ class AdminPanelScreen(Screen):
         self.manager.current = "admin" # Stuurt beheerder terug naar inlogscherm
 
     def open_kiezer(self, formulier, doel):
-        # Opent de bestandskiezer. doel = "hoofd" (hoofdafbeelding van het object)
-        # of "extra" (de afbeelding in het paneel voor een extra afbeelding)
+        # Opent de fotokiezer van het apparaat zelf (via plyer):
+        # - Android: de galerij / Foto's-kiezer (alleen afbeeldingen)
+        # - iOS: de fotobibliotheek
+        # - Windows / Mac: het eigen "Openen"-venster, meteen in de map Afbeeldingen
+        # doel = "hoofd" (hoofdafbeelding van het object) of "extra" (afbeelding in het extra-paneel)
+        def gekozen(selectie):
+            # plyer roept dit aan met een lijst gekozen bestanden (leeg = geannuleerd)
+            if selectie:
+                self.verwerk_afbeelding(selectie[0], formulier, doel)
+
+        try:
+            from plyer import filechooser
+            if platform in ("android", "ios"):
+                # "image" = alleen foto's tonen (opent de galerij)
+                filechooser.open_file(filters=["image"], on_selection=gekozen)
+            else:
+                filechooser.open_file(
+                    title="Kies een foto",
+                    path=fotomap(),
+                    filters=[("Afbeeldingen", "*.png", "*.jpg", "*.jpeg")],
+                    on_selection=gekozen,
+                )
+        except Exception as fout:
+            # plyer niet beschikbaar of werkt niet op dit apparaat: gebruik de Kivy-bestandskiezer
+            print("Fotokiezer van het apparaat werkt niet, Kivy-kiezer wordt gebruikt:", fout)
+            self.open_kivy_kiezer(formulier, doel)
+
+    def open_kivy_kiezer(self, formulier, doel):
+        # Reserve: de ingebouwde Kivy-bestandskiezer (popup AfbeeldingKiezer in admin_panel.kv)
         kiezer = Factory.AfbeeldingKiezer()
         kiezer.formulier = formulier  # onthoud voor welk formulier/paneel het is
         kiezer.doel = doel
-
-        # Begin in de map Afbeeldingen (Pictures), anders in je gebruikersmap
-        start = os.path.join(os.path.expanduser("~"), "Pictures")
+        start = fotomap()
         kiezer.ids.kiezer.path = start if os.path.isdir(start) else os.path.expanduser("~")
         kiezer.open()
 
@@ -117,23 +155,26 @@ class AdminPanelScreen(Screen):
         self.open_kiezer(formulier, "hoofd")
 
     def afbeelding_gekozen(self, kiezer):
+        # Wordt aangeroepen door de Kivy-bestandskiezer (reserve)
         selectie = kiezer.ids.kiezer.selection
         if not selectie:  # niets geselecteerd
             return
+        self.verwerk_afbeelding(selectie[0], kiezer.formulier, kiezer.doel)
+        kiezer.dismiss()
 
-        bron = selectie[0]
+    @mainthread  # Op Android komt de keuze uit een andere thread; de interface mag alleen hier veranderen
+    def verwerk_afbeelding(self, bron, formulier, doel):
+        # Kopieert de gekozen foto naar het project en toont hem in het formulier/paneel.
         # Tijdstempel voor de naam, zodat twee bestanden met de naam "foto.png" elkaar niet overschrijven
         naam = f"{int(time.time())}_{os.path.basename(bron)}"
-        doel = f"{AFBEELDING_MAP}/{naam}"
-        shutil.copy(bron, doel)  # kopieer naar het project
+        kopie = f"{AFBEELDING_MAP}/{naam}"
+        shutil.copy(bron, kopie)  # kopieer naar het project
 
-        formulier = kiezer.formulier
-        formulier.afbeelding = doel  # het voorbeeld in het formulier/paneel verandert vanzelf
+        formulier.afbeelding = kopie  # het voorbeeld in het formulier/paneel verandert vanzelf
 
         # Extra afbeelding zonder titel: vul de bestandsnaam (zonder extensie) alvast in
-        if kiezer.doel == "extra" and not formulier.ids.titel.text.strip():
+        if doel == "extra" and not formulier.ids.titel.text.strip():
             formulier.ids.titel.text = os.path.splitext(os.path.basename(bron))[0]
-        kiezer.dismiss()
 
     # ---------- Extra afbeeldingen (onder de beschrijving) ----------
 

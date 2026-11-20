@@ -19,15 +19,15 @@ jobs:
 
     steps:
       - name: Code ophalen
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       - name: Java 17 (nodig voor Android API 33)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -55,7 +55,23 @@ jobs:
 
       - name: APK bouwen
         working-directory: code
-        run: yes | buildozer -v android debug
+        shell: bash
+        run: |
+          set -o pipefail
+          yes | buildozer -v android debug 2>&1 | tee build.log
+
+      # Bij een fout: de laatste regels van het log als melding tonen (ook zichtbaar zonder in te loggen)
+      - name: Foutmelding tonen
+        if: failure()
+        working-directory: code
+        shell: bash
+        run: |
+          grep -nE "Error|ERROR|error:|Exception|failed|FAILED" build.log | tail -n 40 > fouten.txt || true
+          tail -n 60 build.log > staart.txt
+          for f in fouten.txt staart.txt; do
+            tekst=$(sed -e 's/%/%25/g' -e 's///g' "$f" | cut -c1-300 | awk '{printf "%s%%0A", $0}')
+            echo "::error title=$f::$tekst"
+          done
 
       - name: APK uploaden
         uses: actions/upload-artifact@v4

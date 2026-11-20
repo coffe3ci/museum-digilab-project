@@ -1,4 +1,5 @@
 #:import Window kivy.core.window.Window
+#:import OP_TABLET frontend.kiosk.OP_TABLET
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import KLEUREN frontend.tekst_opmaak.KLEUREN
 #:import MODI frontend.tekst_opmaak.MODI
@@ -149,6 +150,8 @@
     foreground_color: 0.1, 0.1, 0.1, 1
     hint_text_color: 0.6, 0.6, 0.6, 1
     cursor_color: 125/255, 67/255, 53/255, 1
+    # Geen woordsuggesties van het tablettoetsenbord (die laten tekst soms half achter)
+    keyboard_suggestions: False
 
     canvas.before:
         Color:
@@ -162,6 +165,75 @@
         Line:
             rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
             width: 1.1
+        # Kivy tekent de tekst met de laatst gezette kleur: zet daarom de tekstkleur terug
+        # (anders krijgt de tekst de kleur van de rand: lichtgrijs, of bruin met focus)
+        Color:
+            rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)
+
+# Kleine knop "Typen" naast Titel/Beschrijving. Alleen op de tablet zichtbaar: opent het typvenster
+# (TekstBewerker), omdat het toetsenbord in het lange formulier op de tablet niet goed blijft staan.
+<TypKnop@Button>:
+    text: "Typen"
+    font_name: "Tekst"
+    font_size: "13sp"
+    bold: True
+    color: 1, 1, 1, 1
+    size_hint_x: None
+    width: "80dp" if OP_TABLET else 0
+    opacity: 1 if OP_TABLET else 0
+    disabled: not OP_TABLET
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6]
+
+# Typvenster voor titel of beschrijving (tablet). Staat bovenin het scherm, zonder scrollgebied,
+# zodat het toetsenbord eronder past en blijft staan (zoals bij het wachtwoordveld).
+<TekstBewerker@Popup>:
+    veld_naam: "beschrijving"
+    title: "Titel typen" if self.veld_naam == "titel" else "Beschrijving typen"
+    title_font: "Titel"
+    title_size: "17sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: 0.96, None
+    height: Window.height * (0.30 if self.veld_naam == "titel" else 0.46)
+    pos_hint: {"center_x": 0.5, "top": 0.99}
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "4dp"
+        spacing: "8dp"
+
+        FormulierVeld:
+            id: invoer
+            multiline: root.veld_naam != "titel"
+            size_hint_y: 1
+            font_size: "16sp"
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Klaar"
+                on_release: app.root.get_screen("admin_panel").tekst_bewerker_klaar(root)
 
 # Invoerveld voor de beschrijving: ziet eruit als FormulierVeld, maar onthoudt ook de opmaak.
 # De klasse staat in frontend/tekst_opmaak.py (OpmaakVeld).
@@ -178,6 +250,10 @@
     hint_text_color: 0.6, 0.6, 0.6, 1
     cursor_color: 125/255, 67/255, 53/255, 1
     selection_color: 125/255, 67/255, 53/255, 0.3
+    keyboard_suggestions: False
+    # Op de tablet: een tik in het veld zet alleen de cursor/selectie (voor de opmaak), zonder
+    # toetsenbord. Typen gaat via de knop "Typen". Op de pc gewoon typen in het veld.
+    keyboard_mode: "managed" if OP_TABLET else "auto"
 
     canvas.before:
         Color:
@@ -191,6 +267,10 @@
         Line:
             rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
             width: 1.1
+        # Kivy tekent de tekst met de laatst gezette kleur: zet daarom de tekstkleur terug
+        # (anders krijgt de tekst de kleur van de rand: lichtgrijs, of bruin met focus)
+        Color:
+            rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)
 
 # Kleine vierkante knop in de opmaakbalk (B, I, U)
 <OpmaakKnop@Button>:
@@ -665,6 +745,8 @@
     # Nooit groter dan het scherm
     width: min(Window.width * 0.9, dp(560))
     height: min(Window.height * 0.9, dp(540))
+    # Bovenaan het scherm, zodat het formulier niet verspringt als het toetsenbord opent
+    pos_hint: {"center_x": 0.5, "top": 0.97}
     auto_dismiss: False
 
     BoxLayout:
@@ -694,8 +776,7 @@
                         BlokKop:
                             text: "Tekst opmaken"
                             size_hint_x: None
-                            width: self.texture_size[0]
-                            text_size: None, None
+                            width: "120dp"   # vaste breedte (meten op de tekst liet het woord in elkaar klappen)
                             height: "22dp"
 
                         # Laat zien op welk veld de knoppen werken (het veld waarin je het laatst klikte)
@@ -806,7 +887,7 @@
                     # ---------- Nummer en titel naast elkaar ----------
                     BoxLayout:
                         size_hint_y: None
-                        height: "56dp"
+                        height: "64dp" if OP_TABLET else "56dp"
                         spacing: "10dp"
 
                         BoxLayout:
@@ -817,6 +898,7 @@
 
                             VeldLabel:
                                 text: "Nummer"
+                                height: "26dp" if OP_TABLET else "18dp"
 
                             FormulierVeld:
                                 id: nummer
@@ -827,8 +909,15 @@
                             orientation: "vertical"
                             spacing: "0dp"
 
-                            VeldLabel:
-                                text: "Titel"
+                            BoxLayout:
+                                size_hint_y: None
+                                height: "26dp" if OP_TABLET else "18dp"
+                                VeldLabel:
+                                    text: "Titel"
+                                    height: self.parent.height
+                                # Alleen op de tablet: typen in een eigen venster (toetsenbord blijft staan)
+                                TypKnop:
+                                    on_release: app.root.get_screen("admin_panel").open_tekst_bewerker(root, "titel")
 
                             OpmaakVeld:
                                 id: titel
@@ -873,12 +962,19 @@
                                     size: self.size
                                     radius: [8]
 
-                    VeldLabel:
-                        text: "Beschrijving"
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "26dp" if OP_TABLET else "18dp"
+                        VeldLabel:
+                            text: "Beschrijving"
+                            height: self.parent.height
+                        # Alleen op de tablet: typen in een eigen venster (toetsenbord blijft staan)
+                        TypKnop:
+                            on_release: app.root.get_screen("admin_panel").open_tekst_bewerker(root, "beschrijving")
 
                     OpmaakVeld:
                         id: beschrijving
-                        hint_text: "Typ hier de beschrijving. Selecteer woorden of klik in een zin/alinea om op te maken."
+                        hint_text: ("Tik op 'Typen' om te typen. Tik of selecteer hier woorden om op te maken." if OP_TABLET else "Typ hier de beschrijving. Selecteer woorden of klik in een zin/alinea om op te maken.")
                         # Klik in de beschrijving: de opmaakknoppen werken nu op de beschrijving
                         on_focus: if self.focus: root.opmaak_doel = "beschrijving"
 
@@ -1310,6 +1406,34 @@
                             size: self.size
                             radius: [dp(8)]
 
+                # Kioskmodus: app vastzetten op de tablet (bezoekers kunnen de app niet verlaten)
+                Button:
+                    text: root.kiosk_tekst
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: (1, 1, 1, 1) if "AAN" in self.text else (125/255, 67/255, 53/255, 1)
+
+                    size_hint: None, None
+                    size: "230dp", "44dp"
+
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
+
+                    on_release:
+                        root.kiosk_wisselen()
+
+                    canvas.before:
+                        Color:
+                            # Bruin als de kioskmodus aan staat, anders beige zoals de andere knoppen
+                            rgba: ((100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)) if "AAN" in self.text else ((220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1))
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
                 Button:
                     text: "Uitloggen"
                     font_name: "Tekst"
@@ -1335,6 +1459,43 @@
                             pos: self.pos
                             size: self.size
                             radius: [dp(8)]
+
+
+# ============================================================
+# KIOSKMODUS UITLEG (pop-up, als je op de pc op de kioskknop drukt)
+# ============================================================
+
+<KioskUitleg@Popup>:
+    title: "Kioskmodus"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(460))
+    height: min(Window.height * 0.9, dp(330))
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "10dp"
+
+        Label:
+            text: "De kioskmodus werkt alleen op de tablet.\n\nAan: de app wordt vastgezet in beeld. Bezoekers kunnen de app niet verlaten (home-, terug- en recente-apps-knop werken niet) en de systeembalken zijn verborgen.\n\nUit: geheime knop rechtsboven 4x tikken, inloggen en dan op deze knop drukken."
+            font_name: "Tekst"
+            font_size: "14sp"
+            color: 0.2, 0.2, 0.2, 1
+            halign: "left"
+            valign: "top"
+            text_size: self.size
+
+        HoofdKnop:
+            text: "Oké"
+            size_hint_y: None
+            height: "42dp"
+            on_release: root.dismiss()
 
 
 # ============================================================

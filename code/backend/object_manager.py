@@ -1,15 +1,21 @@
-from database.database import get_connection
+from database.database import database_pad, get_connection
 
 
 class ObjectManager:
     # Het id van een object is ook zijn nummer op de objectenwand (1, 2, 3, ...).
     # Daarom houden we de id's altijd netjes op volgorde, zonder gaten.
 
+    # Voor welke database de controles hieronder al gedaan zijn. Die controles (kolommen toevoegen,
+    # id's op volgorde) zijn maar één keer per app-start nodig; bij elke aanroep was traag op de tablet.
+    _gecontroleerd = None
+
     def _verbind(self):
-        # Maakt verbinding met de database en zorgt dat de id's op orde zijn
+        # Maakt verbinding met de database (en controleert hem de eerste keer)
         conn = get_connection()
-        self._zet_om_naar_id(conn)
-        self._zorg_voor_extra_kolommen(conn)
+        if ObjectManager._gecontroleerd != database_pad():
+            self._zet_om_naar_id(conn)
+            self._zorg_voor_extra_kolommen(conn)
+            ObjectManager._gecontroleerd = database_pad()
         return conn
 
     def _zorg_voor_extra_kolommen(self, conn):

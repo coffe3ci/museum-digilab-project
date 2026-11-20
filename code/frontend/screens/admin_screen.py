@@ -1,3 +1,7 @@
+import threading  # Wachtwoord controleren op de achtergrond, zodat het scherm niet "bevriest"
+
+from kivy.clock import mainthread  # Resultaat terug op de hoofdthread (alleen daar mag de interface veranderen)
+from kivy.logger import Logger  # Meldingen die op de tablet via "adb logcat" te zien zijn
 from kivy.uix.screenmanager import Screen
 # Importeert de Screen-klasse van Kivy.
 # Deze klasse wordt gebruikt als basis voor het AdminScreen.
@@ -6,86 +10,67 @@ from backend.admin_manager import AdminManager
 # Importeert de AdminManager uit de backend.
 # Deze klasse controleert de inloggegevens van de beheerder.
 
+STANDAARD_GEBRUIKERSNAAM = "admin"  # De gebruikersnaam van de beheerder
+
 
 class AdminScreen(Screen):
 # Maakt een nieuw scherm aan met de naam AdminScreen.
 # Het scherm erft de eigenschappen van de Kivy Screen-klasse.
 
+    _bezig = False  # True terwijl het wachtwoord gecontroleerd wordt (dubbel tikken voorkomen)
 
-    def __init__(self, **kwargs):
-    # Deze functie wordt automatisch uitgevoerd wanneer het scherm wordt aangemaakt.
-    # **kwargs ontvangt extra instellingen die door Kivy worden meegegeven.
-
-        super().__init__(**kwargs)
-        # Voert de constructor van de bovenliggende Screen-klasse uit.
-        # Hierdoor wordt het scherm correct door Kivy ingesteld.
-
-        self.beheerder = AdminManager()
-        # Maakt een AdminManager-object aan.
-        # Dit object wordt gebruikt om de inloggegevens te controleren.
-
+    def on_pre_enter(self):
+        # Elke keer dat het inlogscherm opent: leeg veld en geen oude foutmelding
+        self.ids.wachtwoord_veld.text = ""
+        self.ids.foutmelding.text = ""
+        self._zet_knop(bezig=False)
 
     def terug_naar_home(self):
     # Deze functie wordt uitgevoerd wanneer de gebruiker op de terugknop drukt.
     # De gebruiker wordt teruggebracht naar het beginscherm.
-
-        # Wachtwoord wissen
-        # Maakt het wachtwoordveld leeg.
         self.ids.wachtwoord_veld.text = ""
-
-        # Foutmelding wissen
-        # Verwijdert een eventuele foutmelding van het scherm.
         self.ids.foutmelding.text = ""
-
-        # Terug naar home
-        # Schakelt via de ScreenManager terug naar het homescreen.
         self.manager.current = "home"
 
     def inloggen_actie(self, ingevoerde_wachtwoord):
     # Deze functie wordt uitgevoerd wanneer de gebruiker probeert in te loggen.
-    # Het ingevoerde wachtwoord wordt gecontroleerd.
+    # Het controleren (hashen) kost op de tablet even tijd; dat gebeurt daarom op de achtergrond,
+    # met "Bezig met inloggen…" op de knop, zodat de app intussen gewoon blijft reageren.
+        if self._bezig:
+            return
+        self._zet_knop(bezig=True)
+        self.ids.foutmelding.text = ""
 
-        standaard_gebruikersnaam = "admin"
-        # Stelt de standaard gebruikersnaam van de beheerder in.
+        # Hulp bij problemen op de tablet (zichtbaar via "adb logcat"); het wachtwoord zelf wordt
+        # nooit gelogd, alleen de lengte en of er spaties aan begin/eind staan.
+        Logger.info(f"Inloggen: {len(ingevoerde_wachtwoord)} tekens, spatie aan begin/eind: "
+                    f"{ingevoerde_wachtwoord != ingevoerde_wachtwoord.strip()}")
 
-        # Controleer login
-        # Controleert of de ingevoerde inloggegevens correct zijn.
-        is_gelukt = self.beheerder.login(
-            standaard_gebruikersnaam,
-            ingevoerde_wachtwoord
-        )
-        # Roept de login-functie van AdminManager aan.
-        # Het resultaat is True wanneer de gegevens correct zijn
-        # en False wanneer de gegevens niet correct zijn.
+        threading.Thread(target=self._controleer, args=(ingevoerde_wachtwoord,), daemon=True).start()
 
-        if is_gelukt:
-        # Deze code wordt uitgevoerd wanneer het inloggen succesvol is.
+    def _controleer(self, wachtwoord):
+        # Draait op de achtergrond (eigen databaseverbinding in deze thread)
+        try:
+            gelukt = AdminManager().login(STANDAARD_GEBRUIKERSNAAM, wachtwoord)
+        except Exception as fout:
+            Logger.exception(f"Inloggen mislukt door een fout: {fout}")
+            gelukt = False
+        self._klaar(gelukt)
 
-            print("Inloggen geslaagd!")
-            # Toont in de terminal dat het inloggen succesvol is.
-
-            # Wachtwoordveld leegmaken
-            # Maakt het wachtwoordveld leeg nadat het inloggen is gelukt.
-            self.ids.wachtwoord_veld.text = ""
-
-            # Foutmelding verwijderen
-            # Verwijdert een eventuele eerdere foutmelding.
+    @mainthread
+    def _klaar(self, gelukt):
+        self._zet_knop(bezig=False)
+        self.ids.wachtwoord_veld.text = ""  # Wachtwoord nooit in het veld laten staan
+        if gelukt:
+            Logger.info("Inloggen geslaagd")
             self.ids.foutmelding.text = ""
-
-            # Naar admin panel
-            # Gaat naar het beheerpaneel.
-            self.manager.current = "admin_panel"
-
+            self.manager.current = "admin_panel"  # Naar het beheerpaneel
         else:
-        # Deze code wordt uitgevoerd wanneer het inloggen mislukt.
-
-            print("Onjuist wachtwoord!")
-            # Toont in de terminal dat het wachtwoord onjuist is.
-
-            # Wachtwoordveld leegmaken
-            # Maakt het wachtwoordveld leeg na een mislukte inlogpoging.
-            self.ids.wachtwoord_veld.text = ""
-
-            # Foutmelding tonen
-            # Toont een foutmelding aan de gebruiker.
+            Logger.info("Inloggen: onjuist wachtwoord")
             self.ids.foutmelding.text = "Onjuist wachtwoord!"
+
+    def _zet_knop(self, bezig):
+        self._bezig = bezig
+        knop = self.ids.inloggen_knop
+        knop.disabled = bezig
+        knop.text = "Bezig met inloggen…" if bezig else "Inloggen"

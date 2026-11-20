@@ -18,6 +18,7 @@ from kivy.uix.widget import Widget  # Lege widget, gebruikt als opvulling
 from kivy.utils import escape_markup  # Tekens als [ en ] in een naam veilig tonen in markup
 
 from backend.object_manager import ObjectManager
+from frontend.beeld import tegel_pad  # Kleine versie van een foto voor de tegels
 
 PER_PAGINA = 9  # Aantal objectknoppen per blok (3x3) = wat je in één keer ziet
 ADMIN_TIK_TIJD = 0.6  # Maximaal aantal seconden tussen twee tikken op de geheime admin-knop
@@ -195,11 +196,25 @@ class VeegWand(StencilView):
         touch.grab(self)
         touch.ud["wand_start"] = self.positie
         Animation.cancel_all(self, "positie")  # Een lopende animatie stoppen
+        # Meteen laten zien welke knop je aanraakt (voelt direct, ook op een trage tablet)
+        knop = self.knop_onder(touch)
+        if knop is not None:
+            knop.state = "down"
+            touch.ud["wand_knop"] = knop
         return True
+
+    def los_knop(self, touch):
+        # Haalt de "ingedrukt"-weergave weer weg (bij vegen of loslaten)
+        knop = touch.ud.pop("wand_knop", None)
+        if knop is not None:
+            knop.state = "normal"
+        return knop
 
     def on_touch_move(self, touch):
         if touch.grab_current is not self:
             return False
+        if abs(touch.x - touch.ox) > dp(TIK_AFSTAND) or abs(touch.y - touch.oy) > dp(TIK_AFSTAND):
+            self.los_knop(touch)  # het wordt een veeg, geen tik
         # De wand beweegt met de vinger mee
         nieuw = touch.ud["wand_start"] - (touch.x - touch.ox)
         uiterste = (self.aantal_blokken - 1) * self.stap()
@@ -215,6 +230,7 @@ class VeegWand(StencilView):
         if touch.grab_current is not self:
             return False
         touch.ungrab(self)
+        knop = self.los_knop(touch)
 
         dx = touch.x - touch.ox
         dy = touch.y - touch.oy
@@ -223,7 +239,8 @@ class VeegWand(StencilView):
         if abs(dx) < tik and abs(dy) < tik:
             # Nauwelijks bewogen: het is een tik, dus open het object onder de vinger
             self.ga_naar_blok(self.blok)
-            self.tik(touch)
+            if knop is not None:
+                knop.dispatch("on_release")
         elif dx < -veeg:
             self.ga_naar_blok(self.blok + 1)  # Naar links geveegd: volgende 9
         elif dx > veeg:
@@ -232,12 +249,12 @@ class VeegWand(StencilView):
             self.ga_naar_blok(self.blok)  # Te kleine veeg: terug naar hetzelfde blok
         return True
 
-    def tik(self, touch):
-        # Zoekt de knop onder de vinger (objectknop of filterknop, ook binnen een bubbel) en "drukt" hem in
+    def knop_onder(self, touch):
+        # Zoekt de knop onder de vinger (objectknop of filterknop, ook binnen een bubbel)
         for knop in self.wand().walk(restrict=True):
-            if isinstance(knop, ButtonBehavior) and knop.collide_point(*touch.pos):
-                knop.trigger_action(duration=0.1)
-                return
+            if isinstance(knop, ButtonBehavior) and not knop.disabled and knop.collide_point(*touch.pos):
+                return knop
+        return None
 
 
 class ObjectScreen(Screen):
@@ -251,19 +268,34 @@ class ObjectScreen(Screen):
     groeperen = False  # Objecten per categorie in een bubbel (instelling in het adminpaneel)
     vorige_admin_tik = 0  # Tijdstip van de vorige tik op de geheime admin-knop
     admin_tikken = 0  # Hoeveel keer er al snel achter elkaar op de admin-knop is getikt
+    _vorige_stand = None  # Gegevens waarmee de wand het laatst is opgebouwd (om onnodig opbouwen te voorkomen)
 
     def on_enter(self):
         # Wordt automatisch uitgevoerd elke keer dat dit scherm geopend wordt.
         # Zo zijn nieuwe objecten en categorieën uit het adminpaneel direct zichtbaar.
-        self.alle_objecten = ObjectManager().get_all_objects()
-        self.categorieen = ObjectManager().get_categorieen()
+        manager = ObjectManager()
+        self.alle_objecten = manager.get_all_objects()
+        self.categorieen = manager.get_categorieen()
         # Instellingen uit het adminpaneel ("Weergave voor bezoekers")
-        self.filter_zichtbaar = ObjectManager().get_instelling("filter_tonen")
-        self.groeperen = ObjectManager().get_instelling("groeperen")
+        self.filter_zichtbaar = manager.get_instelling("filter_tonen")
+        self.groeperen = manager.get_instelling("groeperen")
         # Bestaat het gekozen filter niet meer (verwijderd in het adminpaneel), of staat de
         # filterbalk uit? Dan weer alles tonen.
         if not self.filter_zichtbaar or self.filter_id not in [cat["id"] for cat in self.categorieen]:
             self.filter_id = None
+
+        # Is er sinds de vorige keer niets veranderd (bv. terug van een objectpagina)? Dan staat de
+        # wand er al: niet alles opnieuw opbouwen, dat is op de tablet het traagste deel.
+        stand = (tuple(tuple(obj) for obj in self.alle_objecten),
+                 tuple(tuple(sorted(cat.items())) for cat in self.categorieen),
+                 self.filter_zichtbaar, self.groeperen, self.filter_id)
+        if stand == self._vorige_stand and self.ids.wand.children:
+            if self.terug_naar_blok is None:
+                self.ids.veegwand.ga_naar_blok(0, animatie=False)  # nieuwe bezoeker: vooraan beginnen
+            self.terug_naar_blok = None
+            return
+        self._vorige_stand = stand
+
         self.maak_filterknoppen()
         # Terug van een objectpagina: zelfde filter en dezelfde 9 objecten als daarvoor
         self.toon_objecten(begin_blok=self.terug_naar_blok or 0)
@@ -334,6 +366,7 @@ class ObjectScreen(Screen):
         if cat_id == self.filter_id:
             return
         self.filter_id = cat_id
+        self._vorige_stand = None  # wand wordt hieronder opnieuw opgebouwd
         for knop_cat_id, knop in self.filter_knoppen:  # De gekozen knop wordt bruin
             knop.actief = knop_cat_id == cat_id
 
@@ -454,9 +487,9 @@ class ObjectScreen(Screen):
         knop.titel = obj[1]
         knop.nummer = str(obj["id"])  # Het id uit de database is het nummer (aanpasbaar in het adminpaneel)
 
-        # Toon de afbeelding alleen als het bestand echt bestaat
+        # Toon de afbeelding alleen als het bestand echt bestaat (kleine tegelversie: snel te laden)
         if obj[3] and os.path.exists(obj[3]):
-            knop.afbeelding = obj[3]
+            knop.afbeelding = tegel_pad(obj[3])
 
         # obj_id=obj["id"] zorgt dat elke knop zijn eigen id onthoudt
         knop.bind(on_release=lambda btn, obj_id=obj["id"]: self.open_object(obj_id))
@@ -490,5 +523,7 @@ class ObjectScreen(Screen):
     def terug_naar_home(self):
         # Deze functie wordt uitgevoerd wanneer de gebruiker op de terugknop drukt.
         # Schakelt via de ScreenManager terug naar het homescreen.
-        self.filter_id = None  # Volgende bezoeker begint weer met alle objecten
+        if self.filter_id is not None:
+            self.filter_id = None  # Volgende bezoeker begint weer met alle objecten
+            self._vorige_stand = None
         self.manager.current = "home"

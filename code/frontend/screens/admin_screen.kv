@@ -93,6 +93,13 @@
         TextInput:
             id: wachtwoord_veld
             password: True
+            # Geen woordsuggesties/autocorrectie van het tablettoetsenbord: die veranderen anders
+            # ongemerkt wat er getypt wordt (extra spatie, hoofdletter, half woord).
+            input_type: "text"
+            keyboard_suggestions: False
+            write_tab: False
+            on_text: root.ids.foutmelding.text = ""   # oude melding weg zodra je opnieuw typt
+            on_text_validate: root.inloggen_actie(self.text)   # Enter = inloggen
             hint_text: "" if self.focus else "********"
             font_name: "Tekst"
             font_size: "18sp"
@@ -123,6 +130,10 @@
                 Line:
                     rounded_rectangle: (self.x, self.y, self.width, self.height, 12)
                     width: 1.2
+                # Kivy tekent de tekst met de laatst gezette kleur: tekstkleur terugzetten
+                # (anders zijn de sterretjes lichtgrijs, in de kleur van de rand)
+                Color:
+                    rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)
 
         # 9. Inloggen Knop 
         Button:
@@ -137,8 +148,11 @@
             
             background_normal: ""
             background_down: ""
-            background_color: 0, 0, 0, 0 
+            background_disabled_normal: ""
+            background_color: 0, 0, 0, 0
             color: 1, 1, 1, 1
+            disabled_color: 1, 1, 1, 1
+            opacity: 0.7 if self.disabled else 1   # tijdens het inloggen even vaag
             on_release: root.inloggen_actie(wachtwoord_veld.text)
 
             canvas.before:

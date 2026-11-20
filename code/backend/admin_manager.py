@@ -1,14 +1,18 @@
 import hashlib  # Om het wachtwoord te "hashen" (onleesbaar maken)
 import hmac  # Om twee hashes veilig te vergelijken
 import os  # Voor een willekeurige "salt"
-import sqlite3
+
+from database.database import get_connection
 
 # Het wachtwoord staat NIET leesbaar in de database, maar als hash:
 #   pbkdf2_sha256$<aantal rondes>$<salt>$<hash>
 # Uit een hash kun je het wachtwoord niet terugrekenen. Bij inloggen wordt het ingevoerde
 # wachtwoord op dezelfde manier gehasht en vergeleken.
 VOORVOEGSEL = "pbkdf2_sha256"
-RONDES = 600_000  # Hoe vaker, hoe trager raden gaat (aanbevolen waarde voor PBKDF2-SHA256)
+# Hoe vaker, hoe trager raden gaat. 200.000 rondes: veilig voor deze app en op de tablet nog
+# acceptabel snel (600.000 duurde daar enkele seconden). Oude hashes met een ander aantal rondes
+# blijven werken en worden bij de eerstvolgende geslaagde login automatisch omgezet.
+RONDES = 200_000
 
 
 def maak_hash(wachtwoord, salt=None, rondes=RONDES):
@@ -17,6 +21,14 @@ def maak_hash(wachtwoord, salt=None, rondes=RONDES):
     salt = salt or os.urandom(16).hex()
     hash_ = hashlib.pbkdf2_hmac("sha256", wachtwoord.encode("utf-8"), salt.encode("utf-8"), rondes).hex()
     return f"{VOORVOEGSEL}${rondes}${salt}${hash_}"
+
+
+def rondes_van(opgeslagen):
+    # Hoeveel rondes zijn gebruikt voor deze hash? (0 als het geen geldige hash is)
+    try:
+        return int(opgeslagen.split("$")[1])
+    except (IndexError, ValueError, AttributeError):
+        return 0
 
 
 def klopt_wachtwoord(wachtwoord, opgeslagen):
@@ -32,9 +44,10 @@ def klopt_wachtwoord(wachtwoord, opgeslagen):
 
 
 class AdminManager:
-    # Hulpmethode om verbinding te maken met de database
+    # Hulpmethode om verbinding te maken met de database (dezelfde als de rest van de app,
+    # ook op de tablet waar de database in de eigen opslag van de app staat)
     def get_connection(self):
-        return sqlite3.connect("database/museum.db")
+        return get_connection()
 
     def login(self, username, password):
         # Haal de opgeslagen (gehashte) wachtwoord van deze gebruiker op
@@ -48,21 +61,30 @@ class AdminManager:
             return False
         opgeslagen = rij[0] or ""
 
+        # Eerst precies zoals getypt; lukt dat niet, dan zonder spaties aan begin/eind
+        # (een tablettoetsenbord zet soms vanzelf een spatie achter een woord).
+        pogingen = [password] + ([password.strip()] if password.strip() != password else [])
+
         if opgeslagen.startswith(VOORVOEGSEL + "$"):
-            gelukt = klopt_wachtwoord(password, opgeslagen)
+            juist = next((p for p in pogingen if klopt_wachtwoord(p, opgeslagen)), None)
+            # Hash met een ander aantal rondes (oude versie)? Meteen omzetten naar de huidige.
+            if juist is not None and rondes_van(opgeslagen) != RONDES:
+                self._sla_op(conn, username, juist)
         else:
             # Oud, nog leesbaar opgeslagen wachtwoord: vergelijk één keer gewoon
             # en sla het meteen gehasht op, zodat het daarna niet meer leesbaar is.
-            gelukt = hmac.compare_digest(password.encode("utf-8"), opgeslagen.encode("utf-8"))
-            if gelukt:
-                conn.execute(
-                    "UPDATE admin SET wachtwoord = ? WHERE gebruikersnaam = ?",
-                    (maak_hash(password), username),
-                )
-                conn.commit()
+            juist = next((p for p in pogingen
+                          if hmac.compare_digest(p.encode("utf-8"), opgeslagen.encode("utf-8"))), None)
+            if juist is not None:
+                self._sla_op(conn, username, juist)
 
         conn.close()
-        return gelukt
+        return juist is not None
+
+    def _sla_op(self, conn, username, wachtwoord):
+        conn.execute("UPDATE admin SET wachtwoord = ? WHERE gebruikersnaam = ?",
+                     (maak_hash(wachtwoord), username))
+        conn.commit()
 
     def verander_wachtwoord(self, username, nieuw_wachtwoord):
         # Zet een nieuw wachtwoord (gehasht) voor deze gebruiker.
@@ -70,7 +92,7 @@ class AdminManager:
         conn = self.get_connection()
         aangepast = conn.execute(
             "UPDATE admin SET wachtwoord = ? WHERE gebruikersnaam = ?",
-            (maak_hash(nieuw_wachtwoord), username),
+            (maak_hash(nieuw_wachtwoord.strip()), username),
         ).rowcount
         conn.commit()
         conn.close()

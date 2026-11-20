@@ -27,7 +27,8 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 
 # ScreenManager beheert de verschillende schermen van de applicatie.
-from kivy.uix.screenmanager import ScreenManager
+# FadeTransition: korte vervaging bij wisselen (sneller dan de standaard schuifanimatie).
+from kivy.uix.screenmanager import FadeTransition, ScreenManager
 
 
 # Importeert het homescreen van de applicatie.
@@ -101,7 +102,7 @@ class MuseumApp(App):
         # Maakt een ScreenManager aan.
         # Deze manager zorgt ervoor dat we tussen schermen
         # kunnen navigeren.
-        self.sm = ScreenManager()
+        self.sm = ScreenManager(transition=FadeTransition(duration=0.15))
 
 
         # Voegt het homescreen toe aan de ScreenManager.

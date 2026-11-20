@@ -11,3 +11,7 @@ __pycache__/
 
 # Ontvangen e-mails en bijlagen (privé, niet op GitHub)
 mails/
+
+# Android-build (buildozer)
+code/.buildozer/
+code/bin/

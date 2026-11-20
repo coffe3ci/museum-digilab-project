@@ -1,18 +1,21 @@
 import os      # om te controleren of bestanden en mappen bestaan
 import shutil  # om bestanden te kopiëren
+import threading  # wachtwoord controleren op de achtergrond (anders "bevriest" de tablet even)
 import time    # voor een unieke bestandsnaam
 
 from kivy.clock import Clock, mainthread  # mainthread: code op de hoofdthread van Kivy laten draaien
 from kivy.factory import Factory # Hiermee maken we ObjectItems aan (gedefinieerd in admin_panel.kv)
+from kivy.properties import StringProperty
 from kivy.uix.screenmanager import Screen # Basisklasse voor schermen
 from kivy.utils import platform  # "win", "macosx", "linux", "android" of "ios"
 
 from backend.admin_manager import AdminManager  # Wachtwoord controleren en veranderen
 from backend.object_manager import ObjectManager # Haalt de objecten uit de database
+from frontend import kiosk  # Kioskmodus (app vastzetten op de tablet)
+from frontend.beeld import foto_map, maak_versies, tegel_pad  # Foto's in de juiste maat
 from frontend.tekst_opmaak import OpmaakVeld  # noqa: F401  (invoerveld met opmaak, gebruikt in admin_panel.kv)
 from frontend.screens.object_detail_screen import PaginaVoorbeeld  # noqa: F401  (voorbeeld van de objectpagina)
 
-AFBEELDING_MAP = "assets/objects_img"  # hier worden de afbeeldingen naartoe gekopieerd
 ADMIN_GEBRUIKER = "admin"  # De beheerder (zelfde gebruikersnaam als in admin_screen.py)
 MIN_WACHTWOORD_LENGTE = 8  # Een nieuw wachtwoord moet minstens zo lang zijn
 GEEN_CATEGORIE = "Geen categorie"  # Keuze in het objectformulier als een object (nog) geen categorie heeft
@@ -29,8 +32,32 @@ def fotomap():
     return os.path.join(os.path.expanduser("~"), "Pictures")
 
 class AdminPanelScreen(Screen):
+    kiosk_tekst = StringProperty("Kioskmodus")  # Tekst op de kioskknop (met de huidige stand)
+
     def on_enter(self):
         self.laad_objecten() # Laadt de objecten elke keer dat het adminpaneel geopend wordt
+        self.werk_kiosk_knop_bij()
+
+    # ---------- Kioskmodus (app vastzetten op de tablet) ----------
+
+    def werk_kiosk_knop_bij(self, *args):
+        if not kiosk.OP_TABLET:
+            self.kiosk_tekst = "Kioskmodus (alleen tablet)"
+        else:
+            self.kiosk_tekst = "Kioskmodus: AAN" if kiosk.kiosk_actief() else "Kioskmodus: UIT"
+
+    def kiosk_wisselen(self):
+        # Zet de kioskmodus aan of uit. Op de pc kan dat niet: dan alleen een uitleg.
+        if not kiosk.OP_TABLET:
+            Factory.KioskUitleg().open()
+            return
+        if kiosk.kiosk_actief():
+            kiosk.stop_kiosk()
+        else:
+            kiosk.start_kiosk()
+        # Android heeft even nodig (en vraagt de eerste keer om bevestiging); daarna de knop bijwerken
+        Clock.schedule_once(self.werk_kiosk_knop_bij, 0.8)
+        Clock.schedule_once(self.werk_kiosk_knop_bij, 3)
 
     def laad_objecten(self):
         lijst = self.ids.objecten_lijst
@@ -44,7 +71,7 @@ class AdminPanelScreen(Screen):
             item.categorie = namen.get(obj["categorie_id"], "")  # "" = nog geen categorie (rood)
             item.object_id = obj["id"]
             item.nummer = str(obj["id"])  # Het id is ook het nummer op de objectenwand
-            item.afbeelding = obj[3] or ""  # obj[3] = afbeelding (None wordt "")
+            item.afbeelding = tegel_pad(obj[3]) or ""  # kleine versie van de foto (None wordt "")
             lijst.add_widget(item)
 
         self.ids.aantal_label.text = f"{len(objecten)} OBJECTEN" # Toont het echte aantal objecten
@@ -271,31 +298,55 @@ class AdminPanelScreen(Screen):
 
     def wachtwoord_opslaan(self, formulier):
         # Controleert de drie velden en slaat het nieuwe wachtwoord (gehasht) op
+        if getattr(formulier, "bezig", False):
+            return
         huidig = formulier.ids.huidig.text
-        nieuw = formulier.ids.nieuw.text
-        herhaal = formulier.ids.herhaal.text
+        nieuw = formulier.ids.nieuw.text.strip()
+        herhaal = formulier.ids.herhaal.text.strip()
         formulier.ids.gelukt.text = ""
 
+        # Eerst de snelle controles
         fout = None
-        if not AdminManager().login(ADMIN_GEBRUIKER, huidig):
-            fout = "Het huidige wachtwoord klopt niet."
-        elif len(nieuw) < MIN_WACHTWOORD_LENGTE:
+        if len(nieuw) < MIN_WACHTWOORD_LENGTE:
             fout = f"Het nieuwe wachtwoord moet minstens {MIN_WACHTWOORD_LENGTE} tekens hebben."
         elif nieuw != herhaal:
             fout = "De twee nieuwe wachtwoorden zijn niet hetzelfde."
-        elif nieuw == huidig:
+        elif nieuw == huidig.strip():
             fout = "Het nieuwe wachtwoord is hetzelfde als het huidige."
-
         if fout:
             formulier.ids.foutmelding.text = fout
             return
 
-        AdminManager().verander_wachtwoord(ADMIN_GEBRUIKER, nieuw)
+        # Het huidige wachtwoord controleren en het nieuwe opslaan kost op de tablet even tijd:
+        # dat gebeurt op de achtergrond, zodat de app blijft reageren.
+        formulier.bezig = True
         formulier.ids.foutmelding.text = ""
-        formulier.ids.gelukt.text = "Wachtwoord gewijzigd!"
-        for veld in ("huidig", "nieuw", "herhaal"):
-            formulier.ids[veld].text = ""  # Wachtwoorden niet in de velden laten staan
-        Clock.schedule_once(lambda dt: formulier.dismiss(), 1.2)  # Melding even laten zien, dan sluiten
+        formulier.ids.gelukt.text = "Bezig…"
+
+        def op_achtergrond():
+            try:
+                juist = AdminManager().login(ADMIN_GEBRUIKER, huidig)
+                if juist:
+                    AdminManager().verander_wachtwoord(ADMIN_GEBRUIKER, nieuw)
+            except Exception as fout_:
+                print("Wachtwoord wijzigen mislukt:", fout_)
+                juist = None
+            klaar(juist)
+
+        @mainthread
+        def klaar(juist):
+            formulier.bezig = False
+            formulier.ids.gelukt.text = ""
+            if not juist:
+                formulier.ids.foutmelding.text = ("Het huidige wachtwoord klopt niet." if juist is False
+                                                  else "Er ging iets mis bij het opslaan.")
+                return
+            formulier.ids.gelukt.text = "Wachtwoord gewijzigd!"
+            for veld in ("huidig", "nieuw", "herhaal"):
+                formulier.ids[veld].text = ""  # Wachtwoorden niet in de velden laten staan
+            Clock.schedule_once(lambda dt: formulier.dismiss(), 1.2)  # Melding even laten zien, dan sluiten
+
+        threading.Thread(target=op_achtergrond, daemon=True).start()
 
     def open_kiezer(self, formulier, doel):
         # Opent de fotokiezer van het apparaat zelf (via plyer):
@@ -348,6 +399,31 @@ class AdminPanelScreen(Screen):
         else:
             formulier.ids.foutmelding.text = f"Klik eerst in de {formulier.opmaak_doel} op de plek die je wilt opmaken."
 
+    # ---------- Typvenster voor de tablet ----------
+
+    def open_tekst_bewerker(self, formulier, veld_naam):
+        # Opent het typvenster (TekstBewerker in admin_panel.kv) voor de titel of de beschrijving.
+        # Bovenin het scherm en zonder scrollgebied, zodat het tablettoetsenbord blijft staan.
+        bewerker = Factory.TekstBewerker()
+        bewerker.veld_naam = veld_naam
+        bewerker.formulier = formulier
+        bewerker.ids.invoer.text = formulier.ids[veld_naam].text
+        bewerker.open()
+        # Meteen het toetsenbord openen (even wachten tot het venster er staat)
+        Clock.schedule_once(lambda dt: setattr(bewerker.ids.invoer, "focus", True), 0.3)
+
+    def tekst_bewerker_klaar(self, bewerker):
+        # De getypte tekst terugzetten in het formulier. Het opmaakveld schuift de opmaak
+        # (kleuren) vanzelf mee met de veranderde tekst.
+        formulier = bewerker.formulier
+        nieuw = bewerker.ids.invoer.text
+        if not formulier.ids[bewerker.veld_naam].multiline:
+            nieuw = nieuw.replace("\n", " ")  # de titel is één regel
+        formulier.ids[bewerker.veld_naam].text = nieuw
+        formulier.opmaak_doel = bewerker.veld_naam  # opmaakknoppen werken nu op dit veld
+        bewerker.ids.invoer.focus = False
+        bewerker.dismiss()
+
     def kies_afbeelding(self, formulier):
         self.open_kiezer(formulier, "hoofd")
 
@@ -364,8 +440,9 @@ class AdminPanelScreen(Screen):
         # Kopieert de gekozen foto naar het project en toont hem in het formulier/paneel.
         # Tijdstempel voor de naam, zodat twee bestanden met de naam "foto.png" elkaar niet overschrijven
         naam = f"{int(time.time())}_{os.path.basename(bron)}"
-        kopie = f"{AFBEELDING_MAP}/{naam}"
+        kopie = os.path.join(foto_map(), naam)  # op de tablet: eigen opslag van de app
         shutil.copy(bron, kopie)  # kopieer naar het project
+        maak_versies(kopie)  # verkleinen tot weergavemaat + tegelversie (veel sneller in de app)
 
         formulier.afbeelding = kopie  # het voorbeeld in het formulier/paneel verandert vanzelf
 

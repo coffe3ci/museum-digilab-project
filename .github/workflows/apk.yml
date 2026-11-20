@@ -66,9 +66,15 @@ jobs:
         working-directory: code
         shell: bash
         run: |
-          grep -nE "Error|ERROR|error:|Exception|failed|FAILED" build.log | tail -n 40 > fouten.txt || true
-          tail -n 60 build.log > staart.txt
-          for f in fouten.txt staart.txt; do
+          # kleurcodes weg, onschuldige Cython-hints overslaan
+          sed -e 's/\x1b\[[0-9;]*m//g' build.log | grep -v "performance hint" > schoon.log
+          # echte foutregels (compiler/Python), de laatste 40
+          grep -nE "error:|Error:|Error compiling|Traceback|No such file|not found|undefined reference|FAILED" schoon.log \
+            | grep -v "^.*DEBUG.*warning" | tail -n 40 > fouten.txt || true
+          # de 80 regels vlak voor "Command failed" (daarna volgt alleen de omgevingslijst)
+          regel=$(grep -n "Command failed" schoon.log | tail -n 1 | cut -d: -f1)
+          if [ -n "$regel" ]; then head -n "$regel" schoon.log | tail -n 80 > voor_fout.txt; else tail -n 80 schoon.log > voor_fout.txt; fi
+          for f in fouten.txt voor_fout.txt; do
             tekst=$(tr -d '\r' < "$f" | sed -e 's/%/%25/g' | cut -c1-300 | awk '{printf "%s%%0A", $0}')
             echo "::error title=$f::$tekst"
           done

@@ -69,7 +69,7 @@ jobs:
           grep -nE "Error|ERROR|error:|Exception|failed|FAILED" build.log | tail -n 40 > fouten.txt || true
           tail -n 60 build.log > staart.txt
           for f in fouten.txt staart.txt; do
-            tekst=$(tr -d '' < "$f" | sed -e 's/%/%25/g' | cut -c1-300 | awk '{printf "%s%%0A", $0}')
+            tekst=$(tr -d '\r' < "$f" | sed -e 's/%/%25/g' | cut -c1-300 | awk '{printf "%s%%0A", $0}')
             echo "::error title=$f::$tekst"
           done
 

@@ -45,6 +45,9 @@ android.wakelock = True
 android.allow_backup = True
 
 p4a.bootstrap = sdl2
+# Vaste, stabiele versie van python-for-android (Python 3.11). De standaard ("master") bouwt
+# met Python 3.14 en loopt vast op het bijwerken van pip.
+p4a.branch = v2024.01.21
 
 [buildozer]
 log_level = 2

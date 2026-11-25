@@ -1,0 +1,2134 @@
+#:import Window kivy.core.window.Window
+#:import OP_TABLET frontend.kiosk.OP_TABLET
+#:import TYPEN_KNOP frontend.kiosk.TYPEN_KNOP
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import KLEUREN frontend.tekst_opmaak.KLEUREN
+#:import MODI frontend.tekst_opmaak.MODI
+
+# ============================================================
+# OBJECT ITEM
+# ============================================================
+
+<ObjectItem@BoxLayout>:
+    object_naam: ""
+    categorie: ""   # naam van de categorie ("" = nog geen categorie)
+    object_id: 0
+    afbeelding: ""
+    nummer: ""
+
+    orientation: "horizontal"
+    size_hint_y: None
+    height: "65dp"
+    padding: ["12dp", "8dp"]
+    spacing: "10dp"
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(10)]
+
+    # NUMMER (zelfde rondje als op de objectenwand)
+    Label:
+        text: root.nummer
+        font_size: "14sp"
+        bold: True
+        color: 1, 1, 1, 1
+        size_hint: None, None
+        size: "30dp", "30dp"
+        pos_hint: {"center_y": 0.5}
+        halign: "center"
+        valign: "middle"
+        text_size: self.size
+
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.55
+            RoundedRectangle:
+                pos: self.x - dp(1), self.y
+                size: self.size
+                radius: [15]
+
+    # FOTO VOORBEELD
+    Image:
+        source: root.afbeelding
+        size_hint: None, None
+        size: "48dp", "48dp"
+        pos_hint: {"center_y": 0.5}
+        fit_mode: "cover"
+
+        canvas.before:
+            Color:
+                rgba: 228/255, 222/255, 210/255, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(6)]
+
+
+    # OBJECTNAAM met daaronder de categorie
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_x: 1
+
+        Label:
+            text: root.object_naam
+            font_name: "Tekst"
+            font_size: "14sp"
+            bold: True
+            color: 0.2, 0.2, 0.2, 1
+            halign: "left"
+            valign: "bottom"
+            text_size: self.size
+            shorten: True   # te lange titels worden afgekort met "..." zodat ze in het vak blijven
+            max_lines: 1
+
+        # Categorie (periode op de tijdlijn); rood als het object nog geen categorie heeft
+        Label:
+            text: root.categorie or "Nog geen categorie"
+            font_name: "Klein"
+            font_size: "12sp"
+            color: (125/255, 67/255, 53/255, 1) if root.categorie else (0.75, 0.20, 0.15, 1)
+            halign: "left"
+            valign: "top"
+            text_size: self.size
+            shorten: True
+            max_lines: 1
+
+    # BEWERKEN
+    Button:
+        text: "Bewerken"
+        font_name: "Tekst"
+        font_size: "11sp"
+        bold: True
+        color: 125/255, 67/255, 53/255, 1
+
+        size_hint: None, None
+        size: "75dp", "36dp"
+
+        background_normal: ""
+        background_down: ""
+        background_color: 232/255, 224/255, 212/255, 1
+
+        on_release:
+            app.root.get_screen("admin_panel").object_bewerken(root.object_id)
+
+    # VERWIJDEREN
+    Button:
+        text: "Verwijderen"
+        font_name: "Tekst"
+        font_size: "10sp"
+        bold: True
+        color: 125/255, 67/255, 53/255, 1
+
+        size_hint: None, None
+        size: "85dp", "36dp"
+
+        background_normal: ""
+        background_down: ""
+        background_color: 232/255, 224/255, 212/255, 1
+
+        on_release:
+            app.root.get_screen("admin_panel").object_verwijderen(root.object_id, root.object_naam)
+
+
+# ============================================================
+# BOUWSTENEN VOOR DE FORMULIEREN (compact en overal dezelfde stijl)
+# ============================================================
+
+# Invoerveld
+<FormulierVeld@TextInput>:
+    font_name: "Tekst"
+    font_size: "14sp"
+    padding: ["10dp", "9dp"]
+    size_hint_y: None
+    height: "38dp"
+    background_normal: ""
+    background_active: ""
+    background_color: 0, 0, 0, 0
+    foreground_color: 0.1, 0.1, 0.1, 1
+    hint_text_color: 0.6, 0.6, 0.6, 1
+    cursor_color: 125/255, 67/255, 53/255, 1
+    # Geen woordsuggesties van het tablettoetsenbord (die laten tekst soms half achter)
+    keyboard_suggestions: False
+    # Geen blauwe "druppel"-handvatten: die bleven op het scherm achter (zie README/handleiding)
+    use_handles: False
+    cursor_width: "3dp"
+    cursor_blink: False  # streep altijd zichtbaar, knippert niet
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+        Color:
+            rgba: (125/255, 67/255, 53/255, 1) if self.focus else (215/255, 208/255, 196/255, 1)
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
+            width: 1.1
+        # Kivy tekent de tekst met de laatst gezette kleur: zet daarom de tekstkleur terug
+        # (anders krijgt de tekst de kleur van de rand: lichtgrijs, of bruin met focus)
+        Color:
+            rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)
+    canvas.after:
+        # Kivy tekent de cursor zelf in canvas.before, maar onze witte achtergrond valt er dan overheen.
+        # Daarom tekenen we de cursor (de knipperende streep) hier nog eens bovenop.
+        Color:
+            rgba: self.cursor_color if (self.focus and not self._cursor_blink and int(self.x + self.padding[0]) <= self._cursor_visual_pos[0] <= int(self.x + self.width - self.padding[2]) and self.y <= self._cursor_visual_pos[1] - self._cursor_visual_height and self._cursor_visual_pos[1] <= self.top) else (0, 0, 0, 0)
+        Rectangle:
+            pos: self._cursor_visual_pos
+            size: self.cursor_width, -self._cursor_visual_height
+
+# Kleine knop "Typen" naast Titel/Beschrijving. Alleen op de tablet zichtbaar: opent het typvenster
+# (TekstBewerker), omdat het toetsenbord in het lange formulier op de tablet niet goed blijft staan.
+<TypKnop@Button>:
+    text: "Typen"
+    font_name: "Tekst"
+    font_size: "13sp"
+    bold: True
+    color: 1, 1, 1, 1
+    size_hint_x: None
+    width: "80dp" if (OP_TABLET and TYPEN_KNOP) else 0
+    opacity: 1 if (OP_TABLET and TYPEN_KNOP) else 0
+    disabled: not (OP_TABLET and TYPEN_KNOP)
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6]
+
+# Typvenster voor titel of beschrijving (tablet). Staat bovenin het scherm, zonder scrollgebied,
+# zodat het toetsenbord eronder past en blijft staan (zoals bij het wachtwoordveld).
+<TekstBewerker@Popup>:
+    veld_naam: "beschrijving"
+    title: "Titel typen" if self.veld_naam == "titel" else "Beschrijving typen"
+    title_font: "Titel"
+    title_size: "17sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: 0.96, None
+    height: Window.height * (0.30 if self.veld_naam == "titel" else 0.46)
+    pos_hint: {"center_x": 0.5, "top": 0.99}
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "4dp"
+        spacing: "8dp"
+
+        FormulierVeld:
+            id: invoer
+            multiline: root.veld_naam != "titel"
+            size_hint_y: 1
+            font_size: "16sp"
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Klaar"
+                on_release: app.root.get_screen("admin_panel").tekst_bewerker_klaar(root)
+
+# Invoerveld voor de beschrijving: ziet eruit als FormulierVeld, maar onthoudt ook de opmaak.
+# De klasse staat in frontend/tekst_opmaak.py (OpmaakVeld).
+<OpmaakVeld>:
+    font_name: "Tekst"
+    font_size: "14sp"
+    padding: ["10dp", "9dp"]
+    size_hint_y: None
+    background_normal: ""
+    background_active: ""
+    background_color: 0, 0, 0, 0
+    foreground_color: 0.1, 0.1, 0.1, 1
+    hint_text_color: 0.6, 0.6, 0.6, 1
+    cursor_color: 125/255, 67/255, 53/255, 1
+    selection_color: 125/255, 67/255, 53/255, 0.3
+    keyboard_suggestions: False
+    # Een tik in het veld opent direct het tablettoetsenbord (ook op de pc: gewoon typen).
+    keyboard_mode: "auto"
+    use_handles: False  # geen blauwe "druppel"-handvatten die op het scherm blijven staan
+    # Vaste hoogte; de tekst scrolt binnen het veld (veeg omhoog/omlaag) en de cursor blijft in beeld.
+    height: dp(190) if self.multiline else dp(38)  # titel = 1 regel
+    cursor_width: "3dp"  # dikke, goed zichtbare cursor
+    cursor_blink: False  # streep altijd zichtbaar, knippert niet
+    scroll_timeout: 250   # ruimer dan standaard (55 ms): veeg-scrollen lukt makkelijker op de tablet
+    scroll_distance: "10dp"
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+        # Lichte balk achter de regel waar je nu typt (alleen als die regel in beeld is)
+        Color:
+            rgba: (125/255, 67/255, 53/255, 0.12) if (self.focus and self.multiline and self.y <= self.cursor_pos[1] - self.line_height and self.cursor_pos[1] <= self.top) else (0, 0, 0, 0)
+        Rectangle:
+            pos: self.x + dp(3), self.cursor_pos[1] - self.line_height
+            size: self.width - dp(6), self.line_height
+        Color:
+            rgba: (125/255, 67/255, 53/255, 1) if self.focus else (215/255, 208/255, 196/255, 1)
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, 8)
+            width: 1.1
+        # Kivy tekent de tekst met de laatst gezette kleur: zet daarom de tekstkleur terug
+        # (anders krijgt de tekst de kleur van de rand: lichtgrijs, of bruin met focus)
+        Color:
+            rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)
+    canvas.after:
+        # Kivy tekent de cursor zelf in canvas.before, maar onze witte achtergrond valt er dan overheen.
+        # Daarom tekenen we de cursor (de knipperende streep) hier nog eens bovenop.
+        Color:
+            rgba: self.cursor_color if (self.focus and not self._cursor_blink and int(self.x + self.padding[0]) <= self._cursor_visual_pos[0] <= int(self.x + self.width - self.padding[2]) and self.y <= self._cursor_visual_pos[1] - self._cursor_visual_height and self._cursor_visual_pos[1] <= self.top) else (0, 0, 0, 0)
+        Rectangle:
+            pos: self._cursor_visual_pos
+            size: self.cursor_width, -self._cursor_visual_height
+
+# Kleine vierkante knop in de opmaakbalk (B, I, U)
+<OpmaakKnop@Button>:
+    markup: True
+    font_name: "Tekst"
+    font_size: "15sp"
+    color: 125/255, 67/255, 53/255, 1
+    size_hint: None, None
+    size: "34dp", "34dp"
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6]
+
+# Rond kleurvakje in de opmaakbalk. kleur = "#rrggbb", of "" voor de standaard tekstkleur.
+<KleurKnop@Button>:
+    kleur: ""
+    size_hint: None, None
+    size: "26dp", "26dp"
+    pos_hint: {"center_y": 0.5}
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        # Lichte rand, iets groter als je erop drukt
+        Color:
+            rgba: 215/255, 208/255, 196/255, 1
+        Ellipse:
+            pos: (self.x - dp(3), self.y - dp(3)) if self.state == "down" else (self.x - dp(1.5), self.y - dp(1.5))
+            size: (self.width + dp(6), self.height + dp(6)) if self.state == "down" else (self.width + dp(3), self.height + dp(3))
+        Color:
+            # Standaard = de gewone tekstkleur van de objectpagina (donkergrijs)
+            rgba: get_color_from_hex(self.kleur) if self.kleur else (0.2, 0.2, 0.2, 1)
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+# Klein grijs kopje boven een veld
+<VeldLabel@Label>:
+    font_name: "Klein"
+    font_size: "12sp"
+    bold: True
+    color: 0.4, 0.4, 0.4, 1
+    size_hint_y: None
+    height: "18dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.size
+
+# Bruin kopje van een blok (bv. "Grootte")
+<BlokKop@Label>:
+    font_name: "Tekst"
+    font_size: "14sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint_y: None
+    height: "20dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.size
+
+# Wit blok met afgeronde hoeken om velden te groeperen
+<Kaart@BoxLayout>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+    padding: "12dp"
+    spacing: "6dp"
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 0.7
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+
+# Lichte knop (beige)
+<ZachteKnop@Button>:
+    font_name: "Tekst"
+    font_size: "13sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint_y: None
+    height: "38dp"
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+
+# Hoofdknop (bruin), bv. "Opslaan"
+<HoofdKnop@Button>:
+    font_name: "Tekst"
+    font_size: "14sp"
+    bold: True
+    color: 1, 1, 1, 1
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+# Rode knop, bv. "Verwijderen"
+<RodeKnop@Button>:
+    font_name: "Tekst"
+    font_size: "14sp"
+    bold: True
+    color: 1, 1, 1, 1
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (140/255, 35/255, 25/255, 1) if self.state == "down" else (180/255, 50/255, 40/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+# Rode foutmelding onderaan een formulier
+<FoutLabel@Label>:
+    text: ""
+    font_name: "Klein"
+    font_size: "12sp"
+    bold: True
+    color: 0.75, 0.20, 0.15, 1
+    size_hint_y: None
+    height: "18dp" if self.text else 0
+
+# Keuzes in de dropdown "Positie"
+<PositieOptie@SpinnerOption>:
+    font_name: "Tekst"
+    font_size: "13sp"
+    color: 125/255, 67/255, 53/255, 1
+    height: "34dp"
+    background_normal: ""
+    background_down: ""
+    background_color: (225/255, 215/255, 202/255, 1) if self.state == "down" else (1, 1, 1, 1)
+
+
+# ============================================================
+# EXTRA AFBEELDINGEN: titel-knop en lege melding (in het objectformulier)
+# ============================================================
+
+# Eén regel in de lijst met extra afbeeldingen: alleen de titel, klik = bewerken
+<ExtraTitelKnop@Button>:
+    font_name: "Tekst"
+    font_size: "13sp"
+    bold: True
+    color: 125/255, 67/255, 53/255, 1
+    size_hint_y: None
+    height: "30dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.width - dp(20), None
+    shorten: True   # te lange titels worden afgekort met "..."
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(7)]
+
+<ExtraLeegLabel@Label>:
+    text: "Nog geen extra afbeeldingen"
+    font_name: "Klein"
+    font_size: "12sp"
+    color: 0.55, 0.55, 0.55, 1
+    size_hint_y: None
+    height: "30dp"
+    halign: "left"
+    valign: "middle"
+    text_size: self.size
+
+
+# ============================================================
+# EXTRA AFBEELDING (pop-up voor één extra afbeelding)
+# Links een groot voorbeeld van de foto, rechts de instellingen in blokken.
+# ============================================================
+
+<ExtraAfbeeldingFormulier@Popup>:
+    formulier: None   # het objectformulier waar deze afbeelding bij hoort
+    index: -1         # -1 = nieuwe afbeelding, anders de plek in de lijst
+    afbeelding: ""
+
+    title: "Extra afbeelding toevoegen" if self.index < 0 else "Extra afbeelding bewerken"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(720))
+    height: min(Window.height * 0.9, dp(480))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "10dp"
+
+        BoxLayout:
+            spacing: "14dp"
+
+            # ---------- Links: de foto ----------
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.45
+                spacing: "8dp"
+
+                # Voorbeeld van de foto op een beige vlak
+                FloatLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 228/255, 222/255, 210/255, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [12]
+
+                    Image:
+                        source: root.afbeelding
+                        fit_mode: "contain"
+                        opacity: 1 if root.afbeelding else 0
+                        size_hint: 0.92, 0.92
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                    Label:
+                        text: "Nog geen afbeelding gekozen"
+                        font_name: "Klein"
+                        font_size: "13sp"
+                        color: 0.5, 0.5, 0.5, 1
+                        opacity: 0 if root.afbeelding else 1
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                ZachteKnop:
+                    text: "Kies afbeelding" if not root.afbeelding else "Andere afbeelding kiezen"
+                    on_release: app.root.get_screen("admin_panel").open_kiezer(root, "extra")
+
+            # ---------- Rechts: de instellingen (scrollbaar als het niet past) ----------
+            ScrollView:
+                do_scroll_x: False
+                bar_width: "4dp"
+
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: "10dp"
+
+                    # Titel + vinkje
+                    Kaart:
+                        BlokKop:
+                            text: "Titel"
+
+                        FormulierVeld:
+                            id: titel
+                            hint_text: "Naam van de afbeelding"
+                            multiline: False
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: "26dp"
+                            spacing: "4dp"
+
+                            CheckBox:
+                                id: titel_zichtbaar
+                                active: True   # standaard aan
+                                size_hint_x: None
+                                width: "26dp"
+                                color: 125/255, 67/255, 53/255, 1
+
+                            Button:
+                                text: "Titel tonen onder de foto"
+                                font_name: "Klein"
+                                font_size: "12sp"
+                                color: 0.35, 0.35, 0.35, 1
+                                halign: "left"
+                                valign: "middle"
+                                text_size: self.size
+                                background_normal: ""
+                                background_down: ""
+                                background_color: 0, 0, 0, 0
+                                # Klikken op de tekst zet het vinkje ook om
+                                on_release: titel_zichtbaar.active = not titel_zichtbaar.active
+
+                    # Maximale grootte
+                    Kaart:
+                        BlokKop:
+                            text: "Grootte"
+
+                        # Simpele keuze, net als bij de positie
+                        Spinner:
+                            id: formaat
+                            text: "Normaal"   # standaard
+                            values: ["Klein", "Normaal", "Groot", "Origineel"]
+                            option_cls: "PositieOptie"
+                            size_hint_y: None
+                            height: "38dp"
+                            font_name: "Tekst"
+                            font_size: "14sp"
+                            bold: True
+                            color: 125/255, 67/255, 53/255, 1
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
+                        Label:
+                            text: "Klein 150  |  Normaal 250  |  Groot 350  |  Origineel = echte grootte"
+                            font_name: "Klein"
+                            font_size: "11sp"
+                            color: 0.55, 0.55, 0.55, 1
+                            size_hint_y: None
+                            height: "16dp"
+                            halign: "left"
+                            valign: "middle"
+                            text_size: self.size
+
+                        VeldLabel:
+                            text: "Eigen grootte in dp (optioneel, gaat voor de keuze hierboven)"
+
+                        BoxLayout:
+                            size_hint_y: None
+                            height: "38dp"
+                            spacing: "6dp"
+
+                            FormulierVeld:
+                                id: breedte
+                                hint_text: "Breedte"
+                                multiline: False
+                                input_filter: "int"   # alleen cijfers
+
+                            Label:
+                                text: "x"
+                                font_size: "14sp"
+                                color: 0.5, 0.5, 0.5, 1
+                                size_hint_x: None
+                                width: "14dp"
+
+                            FormulierVeld:
+                                id: hoogte
+                                hint_text: "Hoogte"
+                                multiline: False
+                                input_filter: "int"   # alleen cijfers
+
+                    # Positie op de objectpagina
+                    Kaart:
+                        BlokKop:
+                            text: "Positie op de pagina"
+
+                        # Links/rechts = naast de beschrijving, midden = eronder
+                        Spinner:
+                            id: positie
+                            text: "Midden"   # standaard
+                            values: ["Links", "Midden", "Rechts"]
+                            option_cls: "PositieOptie"
+                            size_hint_y: None
+                            height: "38dp"
+                            font_name: "Tekst"
+                            font_size: "14sp"
+                            bold: True
+                            color: 125/255, 67/255, 53/255, 1
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
+                        # Hoogte vanaf boven: alleen voor links en rechts (bij midden verborgen)
+                        VeldLabel:
+                            text: "Hoogte vanaf boven in dp (leeg = automatisch onder elkaar)"
+                            height: "18dp" if positie.text != "Midden" else 0
+                            opacity: 1 if positie.text != "Midden" else 0
+
+                        FormulierVeld:
+                            id: positie_hoogte
+                            hint_text: "bv. 200"
+                            multiline: False
+                            input_filter: "int"   # alleen cijfers
+                            height: "38dp" if positie.text != "Midden" else 0
+                            opacity: 1 if positie.text != "Midden" else 0
+                            disabled: positie.text == "Midden"
+
+        FoutLabel:
+            id: foutmelding
+
+        # ---------- Knoppen onderaan ----------
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            # Alleen zichtbaar bij een bestaande afbeelding
+            RodeKnop:
+                text: "Verwijderen"
+                size_hint_x: None
+                width: "130dp"
+                opacity: 1 if root.index >= 0 else 0
+                disabled: root.index < 0
+                on_release: app.root.get_screen("admin_panel").extra_verwijderen(root)
+
+            Widget:   # lege ruimte, duwt de andere knoppen naar rechts
+
+            ZachteKnop:
+                text: "Annuleren"
+                size_hint: None, None
+                size: "120dp", "42dp"
+                font_size: "14sp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                size_hint_x: None
+                width: "120dp"
+                on_release: app.root.get_screen("admin_panel").extra_opslaan(root)
+
+
+# ============================================================
+# OBJECTFORMULIER (pop-up voor toevoegen en bewerken)
+# ============================================================
+
+<ObjectFormulier@Popup>:
+    obj_id: 0    # 0 = nieuw object, anders het id van het object dat bewerkt wordt
+
+    afbeelding: ""
+    extra_afbeeldingen: []   # extra afbeeldingen (dicts met pad, titel, breedte, hoogte, ...)
+    opmaak_doel: "beschrijving"   # op welk veld de opmaakknoppen werken: "titel" of "beschrijving"
+
+    title: "Object toevoegen" if self.obj_id == 0 else "Object bewerken"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(560))
+    height: min(Window.height * 0.9, dp(540))
+    # Bovenaan het scherm, zodat het formulier niet verspringt als het toetsenbord opent
+    pos_hint: {"center_x": 0.5, "top": 0.97}
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        # Alle velden in een scrollgebied, zodat het formulier klein blijft
+        ScrollView:
+            do_scroll_x: False
+            bar_width: "4dp"
+
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
+
+                # Opmaak, nummer, titel en beschrijving
+                Kaart:
+                    # ---------- Tekst opmaken (werkt op titel en beschrijving) ----------
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "22dp"
+                        spacing: "6dp"
+
+                        BlokKop:
+                            text: "Tekst opmaken"
+                            size_hint_x: None
+                            width: "120dp"   # vaste breedte (meten op de tekst liet het woord in elkaar klappen)
+                            height: "22dp"
+
+                        # Laat zien op welk veld de knoppen werken (het veld waarin je het laatst klikte)
+                        VeldLabel:
+                            text: "voor: " + ("Titel" if root.opmaak_doel == "titel" else "Beschrijving")
+                            height: "22dp"
+                            shorten: True
+
+                    # De knoppen staan in groepjes. Past een groepje niet meer op de regel
+                    # (smal scherm), dan gaat het naar de volgende regel.
+                    StackLayout:
+                        orientation: "lr-tb"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: "8dp"
+
+                        # 1. Waarop: geselecteerde woorden, zin, alinea of de hele tekst
+                        BoxLayout:
+                            size_hint: None, None
+                            width: min(dp(258), self.parent.width)
+                            height: "34dp"
+                            spacing: "8dp"
+
+                            VeldLabel:
+                                text: "Toepassen op"
+                                size_hint_x: None
+                                width: "90dp"
+                                height: "34dp"
+
+                            Spinner:
+                                id: opmaak_modus
+                                text: MODI[0]
+                                values: MODI
+                                option_cls: "PositieOptie"
+                                font_name: "Tekst"
+                                font_size: "13sp"
+                                bold: True
+                                color: 125/255, 67/255, 53/255, 1
+                                shorten: True
+                                text_size: self.width - dp(10), None
+                                halign: "center"
+                                background_normal: ""
+                                background_down: ""
+                                background_color: 0, 0, 0, 0
+                                canvas.before:
+                                    Color:
+                                        rgba: 232/255, 224/255, 212/255, 1
+                                    RoundedRectangle:
+                                        pos: self.pos
+                                        size: self.size
+                                        radius: [8]
+
+                        # 2. Vet, schuin, onderstreept
+                        BoxLayout:
+                            size_hint: None, None
+                            width: self.minimum_width
+                            height: "34dp"
+                            spacing: "6dp"
+
+                            OpmaakKnop:
+                                text: "[b]B[/b]"
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "b")
+                            OpmaakKnop:
+                                text: "[i]I[/i]"
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "i")
+                            OpmaakKnop:
+                                text: "[u]U[/u]"
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "u")
+
+                        # 3. Eén rondje per kleur (lijst KLEUREN in frontend/tekst_opmaak.py)
+                        BoxLayout:
+                            size_hint: None, None
+                            width: self.minimum_width
+                            height: "34dp"
+                            spacing: "8dp"
+                            padding: ["4dp", 0]
+
+                            KleurKnop:
+                                kleur: KLEUREN[0][1] or ""
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", None)
+                            KleurKnop:
+                                kleur: KLEUREN[1][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[2][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[3][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[4][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[5][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+                            KleurKnop:
+                                kleur: KLEUREN[6][1]
+                                on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "kleur", self.kleur)
+
+                        # 4. Alle opmaak eraf
+                        ZachteKnop:
+                            text: "Wis opmaak"
+                            font_size: "12sp"
+                            size_hint: None, None
+                            size: "90dp", "34dp"
+                            on_release: app.root.get_screen("admin_panel").tekst_opmaken(root, "wis")
+
+                    # ---------- Nummer en titel naast elkaar ----------
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "64dp" if OP_TABLET else "56dp"
+                        spacing: "10dp"
+
+                        BoxLayout:
+                            orientation: "vertical"
+                            size_hint_x: None
+                            width: "80dp"
+                            spacing: "0dp"
+
+                            VeldLabel:
+                                text: "Nummer"
+                                height: "26dp" if OP_TABLET else "18dp"
+
+                            FormulierVeld:
+                                id: nummer
+                                multiline: False
+                                input_filter: "int"   # alleen cijfers (plek op de objectenwand)
+
+                        BoxLayout:
+                            orientation: "vertical"
+                            spacing: "0dp"
+
+                            BoxLayout:
+                                size_hint_y: None
+                                height: "26dp" if OP_TABLET else "18dp"
+                                VeldLabel:
+                                    text: "Titel"
+                                    height: self.parent.height
+                                # Alleen op de tablet: typen in een eigen venster (toetsenbord blijft staan)
+                                TypKnop:
+                                    on_release: app.root.get_screen("admin_panel").open_tekst_bewerker(root, "titel")
+
+                            OpmaakVeld:
+                                id: titel
+                                multiline: False
+                                height: "38dp"
+                                # Klik in de titel: de opmaakknoppen werken nu op de titel
+                                on_focus: if self.focus: root.opmaak_doel = "titel"
+
+                    # ---------- Categorie (periode op de tijdlijn) ----------
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "38dp"
+                        spacing: "8dp"
+
+                        VeldLabel:
+                            text: "Categorie"
+                            size_hint_x: None
+                            width: "80dp"
+                            height: "38dp"
+
+                        # De keuzes (namen van de categorieën) worden in admin_panel.py ingevuld
+                        Spinner:
+                            id: categorie
+                            text: "Geen categorie"
+                            values: []
+                            option_cls: "PositieOptie"
+                            font_name: "Tekst"
+                            font_size: "14sp"
+                            bold: True
+                            shorten: True
+                            text_size: self.width - dp(16), None
+                            halign: "center"
+                            color: (125/255, 67/255, 53/255, 1) if self.text != "Geen categorie" else (0.75, 0.20, 0.15, 1)
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "26dp" if OP_TABLET else "18dp"
+                        VeldLabel:
+                            text: "Beschrijving"
+                            height: self.parent.height
+                        # Alleen op de tablet: typen in een eigen venster (toetsenbord blijft staan)
+                        TypKnop:
+                            on_release: app.root.get_screen("admin_panel").open_tekst_bewerker(root, "beschrijving")
+
+                    OpmaakVeld:
+                        id: beschrijving
+                        hint_text: ("Tik op 'Typen' om te typen. Tik of selecteer hier woorden om op te maken." if OP_TABLET else "Typ hier de beschrijving. Selecteer woorden of klik in een zin/alinea om op te maken.")
+                        # Klik in de beschrijving: de opmaakknoppen werken nu op de beschrijving
+                        on_focus: if self.focus: root.opmaak_doel = "beschrijving"
+
+                    VeldLabel:
+                        text: "Het voorbeeld van de hele pagina (met afbeeldingen) staat onderaan."
+
+                # Hoofdafbeelding: klein voorbeeld + knoppen op één regel
+                Kaart:
+                    BlokKop:
+                        text: "Afbeelding"
+
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "48dp"
+                        spacing: "8dp"
+
+                        Image:
+                            source: root.afbeelding
+                            size_hint_x: None
+                            width: "48dp"
+                            fit_mode: "contain"
+                            opacity: 1 if root.afbeelding else 0   # onzichtbaar als er geen afbeelding is
+                            canvas.before:
+                                Color:
+                                    rgba: 228/255, 222/255, 210/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [6]
+
+                        ZachteKnop:
+                            text: "Kies afbeelding"
+                            pos_hint: {"center_y": 0.5}
+                            on_release: app.root.get_screen("admin_panel").kies_afbeelding(root)
+
+                        ZachteKnop:
+                            text: "Verwijder"
+                            size_hint_x: None
+                            width: "90dp"
+                            pos_hint: {"center_y": 0.5}
+                            on_release: root.afbeelding = ""
+
+                    # Grootte van de hoofdfoto (het schilderij bovenaan de objectpagina)
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "38dp"
+                        spacing: "8dp"
+
+                        VeldLabel:
+                            text: "Grootte op de objectpagina"
+                            height: "38dp"
+
+                        Spinner:
+                            id: hoofd_formaat
+                            text: "Normaal"   # standaard
+                            values: ["Klein", "Normaal", "Groot", "Origineel"]
+                            option_cls: "PositieOptie"
+                            size_hint_x: None
+                            width: "140dp"
+                            font_name: "Tekst"
+                            font_size: "14sp"
+                            bold: True
+                            color: 125/255, 67/255, 53/255, 1
+                            background_normal: ""
+                            background_down: ""
+                            background_color: 0, 0, 0, 0
+                            canvas.before:
+                                Color:
+                                    rgba: 232/255, 224/255, 212/255, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8]
+
+                    Label:
+                        text: "Klein 25%  |  Normaal 35%  |  Groot 50% van de schermhoogte  |  Origineel = echte grootte"
+                        font_name: "Klein"
+                        font_size: "11sp"
+                        color: 0.55, 0.55, 0.55, 1
+                        size_hint_y: None
+                        height: "16dp"
+                        halign: "left"
+                        valign: "middle"
+                        text_size: self.size
+                        shorten: True
+
+                # Extra afbeeldingen: alleen de titels; klik op een titel om hem te bewerken
+                Kaart:
+                    BoxLayout:
+                        size_hint_y: None
+                        height: "30dp"
+                        spacing: "8dp"
+
+                        BlokKop:
+                            text: "Extra afbeeldingen"
+                            height: "30dp"
+
+                        ZachteKnop:
+                            text: "+ Toevoegen"
+                            size_hint_x: None
+                            width: "110dp"
+                            height: "30dp"
+                            on_release: app.root.get_screen("admin_panel").open_extra_formulier(root, -1)
+
+                    BoxLayout:
+                        id: extra_lijst
+                        orientation: "vertical"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: "5dp"
+                        # De titel-knoppen worden in admin_panel.py aangemaakt (toon_extra_afbeeldingen)
+
+                # Voorbeeld van de hele objectpagina: hoofdfoto, titel, beschrijving en extra foto's,
+                # precies zoals op het scherm, maar verkleind. Verandert mee terwijl je het formulier invult.
+                # (PaginaVoorbeeld staat in object_detail_screen.py)
+                Kaart:
+                    BlokKop:
+                        text: "Voorbeeld van de objectpagina"
+
+                    PaginaVoorbeeld:
+                        titel: titel.voorbeeld
+                        beschrijving: beschrijving.voorbeeld
+                        afbeelding: root.afbeelding
+                        hoofd_formaat: hoofd_formaat.text
+                        extra: root.extra_afbeeldingen
+
+        FoutLabel:
+            id: foutmelding
+
+        # Knoppen onderaan (altijd zichtbaar, scrollen niet mee)
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                font_size: "14sp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").formulier_opslaan(root)
+
+
+# ============================================================
+# BEVESTIGEN VERWIJDEREN (pop-up)
+# ============================================================
+
+<BevestigVerwijderen@Popup>:
+    obj_id: 0
+    object_naam: ""
+
+    title: "Object verwijderen"
+    title_font: "Titel"
+    title_size: "20sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: 0.5, None
+    height: "200dp"
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "12dp"
+
+        Label:
+            text: 'Weet je zeker dat je "' + root.object_naam + '" wilt verwijderen?'
+            font_name: "Tekst"
+            font_size: "15sp"
+            color: 0.2, 0.2, 0.2, 1
+            halign: "center"
+            valign: "middle"
+            text_size: self.size
+
+        BoxLayout:
+            size_hint_y: None
+            height: "48dp"
+            spacing: "12dp"
+
+            Button:
+                text: "Annuleren"
+                font_name: "Tekst"
+                font_size: "15sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                on_release: root.dismiss()
+                canvas.before:
+                    Color:
+                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+            Button:
+                text: "Verwijderen"
+                font_name: "Tekst"
+                font_size: "15sp"
+                bold: True
+                color: 1, 1, 1, 1
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                on_release: app.root.get_screen("admin_panel").verwijderen_bevestigd(root)
+                canvas.before:
+                    Color:
+                        rgba: (140/255, 35/255, 25/255, 1) if self.state == "down" else (180/255, 50/255, 40/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+
+# ============================================================
+# ADMIN PANEL SCREEN
+# ============================================================
+
+<AdminPanelScreen>:
+
+    canvas.before:
+        Color:
+            rgba: 244/255, 239/255, 230/255, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: ["20dp", "20dp", "20dp", "20dp"]
+        spacing: "15dp"
+
+        # ====================================================
+        # BOVENSTE BALK
+        # ====================================================
+
+        BoxLayout:
+            orientation: "horizontal"
+            size_hint_y: None
+            height: "55dp"
+            spacing: "12dp"
+
+            Button:
+                text: "<"
+                font_name: "Tekst"
+                font_size: "22sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+
+                size_hint: None, None
+                size: "40dp", "40dp"
+
+                background_normal: ""
+                background_down: ""
+                background_color: 232/255, 224/255, 212/255, 1
+
+                on_release:
+                    root.terug_naar_home()
+
+            BoxLayout:
+                orientation: "vertical"
+
+                Label:
+                    text: "STADSMUSEUM VEENENDAAL"
+                    font_name: "Tekst"
+                    font_size: "11sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+                    halign: "left"
+                    valign: "bottom"
+                    text_size: self.size
+
+                Label:
+                    text: "Beheer objecten"
+                    font_name: "Titel"
+                    font_size: "22sp"
+                    color: 0.15, 0.15, 0.15, 1
+                    halign: "left"
+                    valign: "top"
+                    text_size: self.size
+
+
+        # ====================================================
+        # OBJECT TOEVOEGEN
+        # ====================================================
+
+        BoxLayout:
+            size_hint_y: None
+            height: "55dp"
+            spacing: "12dp"
+
+            Button:
+                text: "+  Object toevoegen"
+                font_name: "Tekst"
+                font_size: "16sp"
+                bold: True
+                color: 1, 1, 1, 1
+
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+
+                on_release:
+                    root.object_toevoegen()
+
+                canvas.before:
+                    Color:
+                        rgba: (100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+            # Categorieën (periodes op de tijdlijn) beheren en objecten erin zetten
+            Button:
+                text: "Categorieën"
+                font_name: "Tekst"
+                font_size: "16sp"
+                bold: True
+                color: 125/255, 67/255, 53/255, 1
+                size_hint_x: None
+                width: "180dp"
+
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+
+                on_release:
+                    root.open_categorie_beheer()
+
+                canvas.before:
+                    Color:
+                        rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+
+        # ====================================================
+        # AANTAL OBJECTEN
+        # ====================================================
+
+        Label:
+            id: aantal_label
+            text: "0 OBJECTEN"
+            font_name: "Klein"
+            font_size: "12sp"
+            bold: True
+            color: 0.5, 0.5, 0.5, 1
+
+            size_hint_y: None
+            height: "20dp"
+
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+
+        # ====================================================
+        # OBJECTEN LIJST
+        # ====================================================
+
+        ScrollView:
+            do_scroll_x: False
+            do_scroll_y: True
+
+            BoxLayout:
+                id: objecten_lijst
+
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "10dp"
+
+                # De ObjectItems worden in admin_panel.py aangemaakt (laad_objecten)
+
+
+        # ====================================================
+        # WACHTWOORD WIJZIGEN EN UITLOGGEN
+        # ====================================================
+
+        AnchorLayout:
+            size_hint_y: None
+            height: "50dp"
+
+            anchor_x: "center"
+            anchor_y: "center"
+
+            BoxLayout:
+                size_hint: None, None
+                width: self.minimum_width
+                height: "44dp"
+                spacing: "12dp"
+
+                # Opent de pop-up om het wachtwoord van de adminpagina te veranderen
+                Button:
+                    text: "Wachtwoord wijzigen"
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+
+                    size_hint: None, None
+                    size: "190dp", "44dp"
+
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
+
+                    on_release:
+                        root.open_wachtwoord_formulier()
+
+                    canvas.before:
+                        Color:
+                            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
+                # Kioskmodus: app vastzetten op de tablet (bezoekers kunnen de app niet verlaten)
+                Button:
+                    text: root.kiosk_tekst
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: (1, 1, 1, 1) if "AAN" in self.text else (125/255, 67/255, 53/255, 1)
+
+                    size_hint: None, None
+                    size: "230dp", "44dp"
+
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
+
+                    on_release:
+                        root.kiosk_wisselen()
+
+                    canvas.before:
+                        Color:
+                            # Bruin als de kioskmodus aan staat, anders beige zoals de andere knoppen
+                            rgba: ((100/255, 50/255, 40/255, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)) if "AAN" in self.text else ((220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1))
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
+                Button:
+                    text: "Uitloggen"
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+
+                    size_hint: None, None
+                    size: "140dp", "44dp"
+
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
+
+                    on_release:
+                        root.uitloggen()
+
+                    canvas.before:
+                        Color:
+                            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
+
+# ============================================================
+# KIOSKMODUS UITLEG (pop-up, als je op de pc op de kioskknop drukt)
+# ============================================================
+
+<KioskUitleg@Popup>:
+    title: "Kioskmodus"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(460))
+    height: min(Window.height * 0.9, dp(330))
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "10dp"
+
+        Label:
+            text: "De kioskmodus werkt alleen op de tablet.\n\nAan: de app wordt vastgezet in beeld. Bezoekers kunnen de app niet verlaten (home-, terug- en recente-apps-knop werken niet) en de systeembalken zijn verborgen.\n\nUit: geheime knop rechtsboven 4x tikken, inloggen en dan op deze knop drukken."
+            font_name: "Tekst"
+            font_size: "14sp"
+            color: 0.2, 0.2, 0.2, 1
+            halign: "left"
+            valign: "top"
+            text_size: self.size
+
+        HoofdKnop:
+            text: "Oké"
+            size_hint_y: None
+            height: "42dp"
+            on_release: root.dismiss()
+
+
+# ============================================================
+# WACHTWOORD WIJZIGEN (pop-up)
+# ============================================================
+
+<WachtwoordFormulier@Popup>:
+    title: "Wachtwoord wijzigen"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(420))
+    height: min(Window.height * 0.9, dp(390))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Kaart:
+            VeldLabel:
+                text: "Huidig wachtwoord"
+            FormulierVeld:
+                id: huidig
+                multiline: False
+                password: True   # toont puntjes in plaats van letters
+                write_tab: False  # Tab gaat naar het volgende veld
+
+            VeldLabel:
+                text: "Nieuw wachtwoord (minstens 8 tekens)"
+            FormulierVeld:
+                id: nieuw
+                multiline: False
+                password: True
+                write_tab: False
+
+            VeldLabel:
+                text: "Herhaal nieuw wachtwoord"
+            FormulierVeld:
+                id: herhaal
+                multiline: False
+                password: True
+                write_tab: False
+                on_text_validate: app.root.get_screen("admin_panel").wachtwoord_opslaan(root)   # Enter = opslaan
+
+        Widget:   # lege ruimte
+
+        FoutLabel:
+            id: foutmelding
+
+        # Groene melding als het gelukt is
+        Label:
+            id: gelukt
+            text: ""
+            font_name: "Klein"
+            font_size: "13sp"
+            bold: True
+            color: 0.18, 0.49, 0.20, 1
+            size_hint_y: None
+            height: "18dp" if self.text else 0
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").wachtwoord_opslaan(root)
+
+# ============================================================
+# CATEGORIEËN (periodes op de tijdlijn)
+# ============================================================
+
+# Kleine knop met een driehoekje omhoog of omlaag (volgorde op de tijdlijn).
+# omhoog = True: driehoek wijst naar boven (eerder op de tijdlijn).
+<VolgordeKnop@Button>:
+    omhoog: True
+    size_hint: None, None
+    size: "30dp", "24dp"
+    background_normal: ""
+    background_down: ""
+    background_disabled_normal: ""
+    background_color: 0, 0, 0, 0
+    opacity: 0.25 if self.disabled else 1
+    canvas.before:
+        Color:
+            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [6]
+        Color:
+            rgba: 125/255, 67/255, 53/255, 1
+        Triangle:
+            points: (self.center_x - dp(6), self.center_y - dp(3), self.center_x + dp(6), self.center_y - dp(3), self.center_x, self.center_y + dp(4)) if self.omhoog else (self.center_x - dp(6), self.center_y + dp(3), self.center_x + dp(6), self.center_y + dp(3), self.center_x, self.center_y - dp(4))
+
+# Eén categorie in de lijst van het categoriebeheer
+<CategorieRij@BoxLayout>:
+    cat_id: 0
+    naam: ""
+    periode: ""
+    aantal: 0
+    eerste: False   # bovenaan de tijdlijn: kan niet verder omhoog
+    laatste: False  # onderaan de tijdlijn: kan niet verder omlaag
+
+    size_hint_y: None
+    height: "60dp"
+    padding: ["10dp", "6dp"]
+    spacing: "8dp"
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [10]
+
+    # Volgorde op de tijdlijn
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_x: None
+        width: "30dp"
+        spacing: "4dp"
+        padding: [0, "2dp"]
+        VolgordeKnop:
+            omhoog: True
+            disabled: root.eerste
+            on_release: app.root.get_screen("admin_panel").categorie_verplaatsen(root.cat_id, -1)
+        VolgordeKnop:
+            omhoog: False
+            disabled: root.laatste
+            on_release: app.root.get_screen("admin_panel").categorie_verplaatsen(root.cat_id, 1)
+
+    # Naam met daaronder periode en aantal objecten
+    BoxLayout:
+        orientation: "vertical"
+        Label:
+            text: root.naam
+            font_name: "Tekst"
+            font_size: "15sp"
+            bold: True
+            color: 0.2, 0.2, 0.2, 1
+            halign: "left"
+            valign: "bottom"
+            text_size: self.size
+            shorten: True
+            max_lines: 1
+        Label:
+            text: (root.periode + "  ·  " if root.periode else "") + str(root.aantal) + (" object" if root.aantal == 1 else " objecten")
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 125/255, 67/255, 53/255, 1
+            halign: "left"
+            valign: "top"
+            text_size: self.size
+            shorten: True
+            max_lines: 1
+
+    ZachteKnop:
+        text: "Objecten"
+        font_size: "12sp"
+        size_hint: None, None
+        size: "84dp", "36dp"
+        pos_hint: {"center_y": 0.5}
+        on_release: app.root.get_screen("admin_panel").categorie_objecten(root.cat_id)
+
+    ZachteKnop:
+        text: "Bewerken"
+        font_size: "12sp"
+        size_hint: None, None
+        size: "84dp", "36dp"
+        pos_hint: {"center_y": 0.5}
+        on_release: app.root.get_screen("admin_panel").categorie_bewerken(root.cat_id)
+
+    RodeKnop:
+        text: "Verwijderen"
+        font_size: "12sp"
+        size_hint: None, None
+        size: "96dp", "36dp"
+        pos_hint: {"center_y": 0.5}
+        on_release: app.root.get_screen("admin_panel").categorie_verwijderen(root.cat_id)
+
+
+# Aan/uit-schakelaar in de vorm van een pilletje (bruin = aan, beige = uit)
+<Schakelaar@ToggleButton>:
+    text: "Aan" if self.state == "down" else "Uit"
+    font_name: "Tekst"
+    font_size: "13sp"
+    bold: True
+    color: (1, 1, 1, 1) if self.state == "down" else (125/255, 67/255, 53/255, 1)
+    size_hint: None, None
+    size: "70dp", "32dp"
+    # Tekst aan de kant waar het bolletje niet staat (aan: tekst links, uit: tekst rechts)
+    text_size: self.size
+    valign: "middle"
+    halign: "left" if self.state == "down" else "right"
+    padding: [dp(11), 0]
+    background_normal: ""
+    background_down: ""
+    background_color: 0, 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: (125/255, 67/255, 53/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+        # Wit bolletje: rechts als aan, links als uit
+        Color:
+            rgba: 1, 1, 1, 0.9
+        Ellipse:
+            pos: (self.right - self.height + dp(4), self.y + dp(4)) if self.state == "down" else (self.x + dp(4), self.y + dp(4))
+            size: self.height - dp(8), self.height - dp(8)
+
+# Eén instelling: titel met uitleg en rechts een aan/uit-schakelaar.
+# aan = True/False; verandert als je op de schakelaar drukt.
+<InstellingRij@BoxLayout>:
+    titel: ""
+    uitleg: ""
+    aan: False
+    size_hint_y: None
+    height: max(dp(44), tekst.height)
+    spacing: "10dp"
+
+    BoxLayout:
+        id: tekst
+        orientation: "vertical"
+        size_hint_y: None
+        height: self.minimum_height
+        pos_hint: {"center_y": 0.5}
+        Label:
+            text: root.titel
+            font_name: "Tekst"
+            font_size: "14sp"
+            bold: True
+            color: 0.2, 0.2, 0.2, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+        Label:
+            text: root.uitleg
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 0.45, 0.45, 0.45, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+    Schakelaar:
+        pos_hint: {"center_y": 0.5}
+        state: "down" if root.aan else "normal"
+        on_release: root.aan = self.state == "down"
+
+
+# Overzicht van alle categorieën (pop-up)
+<CategorieBeheer@Popup>:
+    title: "Categorieën (tijdlijn)"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(660))
+    height: min(Window.height * 0.9, dp(680))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        # ---------- Hoe zien bezoekers de categorieën? (wordt direct opgeslagen) ----------
+        Kaart:
+            BlokKop:
+                text: "Weergave voor bezoekers"
+
+            InstellingRij:
+                id: filter_tonen
+                titel: "Filterbalk tonen"
+                uitleg: "Bezoekers kunnen boven de objectenwand op periode filteren."
+                on_aan: app.root.get_screen("admin_panel").instelling_gewijzigd("filter_tonen", self.aan)
+
+            InstellingRij:
+                id: groeperen
+                titel: "Objecten per categorie groeperen"
+                uitleg: "Objecten van dezelfde periode staan bij elkaar op de wand, in een gekleurd vlak met de naam van de periode."
+                on_aan: app.root.get_screen("admin_panel").instelling_gewijzigd("groeperen", self.aan)
+
+        Label:
+            text: "Elk object hoort bij één categorie. De volgorde hieronder is de volgorde op de objectenwand (zet de vroegste periode bovenaan)."
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 0.4, 0.4, 0.4, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+        ScrollView:
+            do_scroll_x: False
+            bar_width: "4dp"
+
+            BoxLayout:
+                id: lijst
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "8dp"
+                # De CategorieRijen worden in admin_panel.py aangemaakt (vul_categorie_lijst)
+
+        # Waarschuwing als er objecten zonder categorie zijn
+        FoutLabel:
+            id: zonder_melding
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Sluiten"
+                height: "42dp"
+                size_hint_x: None
+                width: "120dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "+  Categorie toevoegen"
+                on_release: app.root.get_screen("admin_panel").categorie_toevoegen()
+
+
+# Categorie toevoegen of bewerken (pop-up)
+<CategorieFormulier@Popup>:
+    cat_id: 0   # 0 = nieuwe categorie
+    title: "Categorie toevoegen" if self.cat_id == 0 else "Categorie bewerken"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(420))
+    height: min(Window.height * 0.9, dp(300))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Kaart:
+            VeldLabel:
+                text: "Naam (bv. Franse tijd)"
+            FormulierVeld:
+                id: naam
+                multiline: False
+                write_tab: False
+
+            VeldLabel:
+                text: "Periode (optioneel, bv. 1795 – 1813)"
+            FormulierVeld:
+                id: periode
+                multiline: False
+                write_tab: False
+                on_text_validate: app.root.get_screen("admin_panel").categorie_formulier_opslaan(root)
+
+        Widget:
+
+        FoutLabel:
+            id: foutmelding
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").categorie_formulier_opslaan(root)
+
+
+# Eén object in de lijst "Objecten in deze categorie", met een vinkje
+<CategorieObjectRij@BoxLayout>:
+    obj_id: 0
+    titel: ""
+    andere: ""   # naam van de categorie waar het object nu (nog) in zit, "" = deze of geen
+
+    size_hint_y: None
+    height: "44dp"
+    padding: ["8dp", 0]
+    spacing: "8dp"
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8]
+
+    CheckBox:
+        id: vink
+        size_hint_x: None
+        width: "36dp"
+        color: 125/255, 67/255, 53/255, 1   # bruine vinkjes (wit is onzichtbaar op de lichte achtergrond)
+
+    # Nummer in een rondje (zelfde als op de objectenwand)
+    Label:
+        text: str(root.obj_id)
+        font_size: "12sp"
+        bold: True
+        color: 1, 1, 1, 1
+        size_hint: None, None
+        size: "26dp", "26dp"
+        pos_hint: {"center_y": 0.5}
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.55
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [13]
+
+    Label:
+        text: root.titel
+        font_name: "Tekst"
+        font_size: "13sp"
+        color: 0.2, 0.2, 0.2, 1
+        halign: "left"
+        valign: "middle"
+        text_size: self.size
+        shorten: True
+        max_lines: 1
+
+    # Zit het object nu in een andere categorie? Dan verhuist het als je het aanvinkt.
+    Label:
+        text: ("nu: " + root.andere) if root.andere else ""
+        font_name: "Klein"
+        font_size: "11sp"
+        color: 0.55, 0.55, 0.55, 1
+        size_hint_x: None
+        width: "150dp" if root.andere else 0
+        halign: "right"
+        valign: "middle"
+        text_size: self.size
+        shorten: True
+        max_lines: 1
+
+
+# Kiezen welke objecten in een categorie zitten (pop-up)
+<CategorieObjecten@Popup>:
+    cat_id: 0
+    cat_naam: ""
+    title: "Objecten in: " + self.cat_naam
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(600))
+    height: min(Window.height * 0.9, dp(620))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Label:
+            text: "Vink de objecten aan die bij deze categorie horen. Een object kan maar in één categorie zitten: zit het al in een andere, dan verhuist het hierheen."
+            font_name: "Klein"
+            font_size: "12sp"
+            color: 0.4, 0.4, 0.4, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+        ScrollView:
+            do_scroll_x: False
+            bar_width: "4dp"
+
+            BoxLayout:
+                id: lijst
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: "6dp"
+                # De CategorieObjectRijen worden in admin_panel.py aangemaakt (categorie_objecten)
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").categorie_objecten_opslaan(root)
+
+
+# Bevestigen voordat een categorie verwijderd wordt (pop-up)
+<BevestigCategorieVerwijderen@Popup>:
+    cat_id: 0
+    naam: ""
+    aantal: 0
+    title: "Categorie verwijderen"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    width: min(Window.width * 0.9, dp(440))
+    height: min(Window.height * 0.9, dp(220))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "10dp"
+        spacing: "12dp"
+
+        Label:
+            text: 'Weet je zeker dat je "' + root.naam + '" wilt verwijderen?' + (("\n" + str(root.aantal) + (" object heeft" if root.aantal == 1 else " objecten hebben") + " daarna geen categorie meer.") if root.aantal else "")
+            font_name: "Tekst"
+            font_size: "14sp"
+            color: 0.2, 0.2, 0.2, 1
+            halign: "center"
+            valign: "middle"
+            text_size: self.size
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            RodeKnop:
+                text: "Verwijderen"
+                on_release: app.root.get_screen("admin_panel").categorie_verwijderen_bevestigd(root)
+
+
+# ============================================================
+# AFBEELDING KIEZEN (pop-up)
+# ============================================================
+
+<AfbeeldingKiezer@Popup>:
+    formulier: None   # het formulier dat de afbeelding moet krijgen
+    doel: "hoofd"     # "hoofd" = hoofdafbeelding, "extra" = extra afbeeldingen (meerdere tegelijk)
+
+    title: "Kies een afbeelding"
+    title_font: "Titel"
+    title_size: "20sp"
+    size_hint: 0.8, 0.8
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        spacing: "10dp"
+
+        FileChooserIconView:
+            id: kiezer
+            filters: ["*.png", "*.jpg", "*.jpeg"]   # alleen afbeeldingen tonen
+
+        BoxLayout:
+            size_hint_y: None
+            height: "48dp"
+            spacing: "12dp"
+
+            Button:
+                text: "Annuleren"
+                on_release: root.dismiss()
+
+            Button:
+                text: "Kiezen"
+                on_release: app.root.get_screen("admin_panel").afbeelding_gekozen(root)

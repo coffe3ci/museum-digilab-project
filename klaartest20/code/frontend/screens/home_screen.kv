@@ -1,0 +1,55 @@
+<HomeScreen>:
+    FloatLayout:
+        # 1. Achtergrond (Beige/Crème achtergrond)
+        canvas.before:
+            Color:
+                rgba: 244/255, 239/255, 230/255, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                # 2. Button Layout
+                # 2. Logo + knop
+        BoxLayout:
+            orientation: "vertical"
+            size_hint: 0.6, 0.4
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            spacing: "20dp"
+
+            Image:
+                source: "assets/images/logo.png"
+                fit_mode: "contain"   # logo houdt zijn vorm
+
+            Button:
+                text: "Bekijk de objecten"
+                font_name: "Tekst"
+                font_size: "16sp"
+                bold: True
+                size_hint: 0.6, None
+                height: "60dp"
+                pos_hint: {"center_x": 0.5}
+
+                background_normal: ""
+                background_down: ""
+                background_color: 0, 0, 0, 0
+                color: 1, 1, 1, 1
+                on_release: root.go_to_objects()
+
+                canvas.before:
+                    Color:
+                        rgba: (100/255, 50/255, 40/255, 1) if self.state == 'down' else (125/255, 67/255, 53/255, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [12]
+
+
+
+        # 3. Onzichtbare admin-knop (rechtsboven in de hoek): 2x snel tikken opent het inlogscherm
+        Button:
+            size_hint: None, None
+            size: "100dp", "100dp"
+            pos_hint: {"right": 1, "top": 1}
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+            on_release: root.admin_tik()

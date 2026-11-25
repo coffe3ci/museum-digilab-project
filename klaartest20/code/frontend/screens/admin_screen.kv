@@ -1,0 +1,175 @@
+<AdminScreen>:
+    FloatLayout:
+        # 1. Achtergrond (Beige/Crème achtergrond)
+        canvas.before:
+            Color:
+                rgba: 244/255, 239/255, 230/255, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        # 2. Terug-knop (Ronde knop linksboven)
+        Button:
+            text: "<"
+            font_size: "22sp"
+            color: 0.2, 0.2, 0.2, 1
+            size_hint: None, None
+            size: "44dp", "44dp"
+            pos_hint: {"x": 0.04, "top": 0.96}
+            background_normal: ""
+            background_down: ""
+            background_color: 0, 0, 0, 0
+            on_release: root.terug_naar_home()
+            canvas.before:
+                Color:
+                    rgba: (210/255, 200/255, 188/255, 1) if self.state == 'down' else (232/255, 224/255, 212/255, 1)
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [22] 
+        # 3. Logo
+        Image:
+            source: "assets/objects_img/logo/management.png"
+            size_hint: None, None
+            size: "100dp", "100dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.70}
+            allow_stretch: True
+            keep_ratio: True
+
+        # 4. Tekst: STADSMUSEUM VEENENDAAL
+        Label:
+            text: "STADSMUSEUM VEENENDAAL"
+            font_name: "Tekst"
+            font_size: "12sp"
+            bold: True
+            color: 125/255, 67/255, 53/255, 1
+            pos_hint: {"center_x": 0.5, "center_y": 0.59}
+
+        # 5. Tekst: Beheer - inloggen
+        Label:
+            text: "Beheer - Inloggen"
+            font_name: "Titel"
+            font_size: "25sp"
+            color: 0.15, 0.15, 0.15, 1
+            pos_hint: {"center_x": 0.5, "center_y": 0.53}
+
+        # 6. Tekst: Alleen voor museummedewerkers.
+        Label:
+            text: "Alleen voor museummedewerkers."
+            font_name: "Klein"
+            font_size: "13sp"
+            color: 0.5, 0.5, 0.5, 1
+            pos_hint: {"center_x": 0.5, "center_y": 0.48}
+
+        # 7. Invoerveld Label: Wachtwoord
+        Label:
+            text: "Wachtwoord"
+            font_name: "Klein"
+            font_size: "13sp"
+            bold: True
+            color: 0.3, 0.3, 0.3, 1
+            size_hint: 0.35, None
+            height: "20dp"
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+            pos_hint: {"center_x": 0.5, "center_y": 0.40}
+
+        Label:
+            id: foutmelding
+            text: ""
+            font_name: "Tekst"
+            font_size: "14sp"
+            color: 0.75, 0.20, 0.15, 1
+            bold: True
+            size_hint: 0.35, None
+            height: "25dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.16}
+            halign: "center"
+            valign: "middle"
+            text_size: self.size
+
+       
+        TextInput:
+            id: wachtwoord_veld
+            password: True
+            # Geen woordsuggesties/autocorrectie van het tablettoetsenbord: die veranderen anders
+            # ongemerkt wat er getypt wordt (extra spatie, hoofdletter, half woord).
+            input_type: "text"
+            keyboard_suggestions: False
+            use_handles: False  # geen blauwe druppel op het scherm
+            write_tab: False
+            on_text: root.ids.foutmelding.text = ""   # oude melding weg zodra je opnieuw typt
+            on_text_validate: root.inloggen_actie(self.text)   # Enter = inloggen
+            hint_text: "" if self.focus else "********"
+            font_name: "Tekst"
+            font_size: "18sp"
+            multiline: False
+            size_hint: 0.35, None
+            height: "48dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.34}
+            padding: ["16dp", "14dp"]
+      
+            background_normal: ""
+            background_active: ""
+            background_color: 0, 0, 0, 0  
+            foreground_color: 0.1, 0.1, 0.1, 1
+            cursor_color: 125/255, 67/255, 53/255, 1
+            cursor_width: "3dp"
+            cursor_blink: False
+
+            
+            canvas.before:
+                
+                Color:
+                    rgba: 1, 1, 1, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [12]  
+               
+                Color:
+                    rgba: (125/255, 67/255, 53/255, 1) if self.focus else (210/255, 210/255, 210/255, 1)
+                Line:
+                    rounded_rectangle: (self.x, self.y, self.width, self.height, 12)
+                    width: 1.2
+                # Kivy tekent de tekst met de laatst gezette kleur: tekstkleur terugzetten
+                # (anders zijn de sterretjes lichtgrijs, in de kleur van de rand)
+                Color:
+                    rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text else self.foreground_color)
+            canvas.after:
+                # Kivy tekent de cursor zelf in canvas.before, maar onze witte achtergrond valt er dan overheen.
+                # Daarom tekenen we de cursor (de knipperende streep) hier nog eens bovenop.
+                Color:
+                    rgba: self.cursor_color if (self.focus and not self._cursor_blink and int(self.x + self.padding[0]) <= self._cursor_visual_pos[0] <= int(self.x + self.width - self.padding[2]) and self.y <= self._cursor_visual_pos[1] - self._cursor_visual_height and self._cursor_visual_pos[1] <= self.top) else (0, 0, 0, 0)
+                Rectangle:
+                    pos: self._cursor_visual_pos
+                    size: self.cursor_width, -self._cursor_visual_height
+
+        # 9. Inloggen Knop 
+        Button:
+            id: inloggen_knop
+            text: "Inloggen"
+            font_name: "Tekst"
+            font_size: "16sp"
+            bold: True
+            size_hint: 0.35, None
+            height: "50dp"
+            pos_hint: {"center_x": 0.5, "center_y": 0.24}
+            
+            background_normal: ""
+            background_down: ""
+            background_disabled_normal: ""
+            background_color: 0, 0, 0, 0
+            color: 1, 1, 1, 1
+            disabled_color: 1, 1, 1, 1
+            opacity: 0.7 if self.disabled else 1   # tijdens het inloggen even vaag
+            on_release: root.inloggen_actie(wachtwoord_veld.text)
+
+            canvas.before:
+                Color:
+                    rgba: (100/255, 50/255, 40/255, 1) if self.state == 'down' else (125/255, 67/255, 53/255, 1)
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [12]

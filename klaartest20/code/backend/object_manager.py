@@ -222,6 +222,38 @@ class ObjectManager:
         conn.commit()
         conn.close()
 
+    # ---------- Timers: na hoeveel seconden zonder aanraking terug naar het startscherm ----------
+    # Per scherm apart in te stellen in het adminpaneel (knop "Timers"). 0 = geen timer.
+    # Sleutel = naam van het scherm in de ScreenManager (main.py), waarde = naam in het adminpaneel.
+    TIMER_SCHERMEN = {
+        "objects": "Objectenwand",
+        "object_detail": "Objectpagina (één object)",
+        "admin": "Inlogscherm",
+        "admin_panel": "Beheerpaneel",
+    }
+    STANDAARD_TIMER = 60  # seconden
+
+    def get_timers(self):
+        # Alle timers in één keer: {"objects": 60, "object_detail": 60, ...} (in seconden)
+        conn = self._verbind()
+        rijen = conn.execute("SELECT sleutel, waarde FROM instellingen WHERE sleutel LIKE 'timer_%'").fetchall()
+        conn.close()
+        opgeslagen = {rij[0][len("timer_"):]: rij[1] for rij in rijen}
+        timers = {}
+        for scherm in self.TIMER_SCHERMEN:
+            try:
+                timers[scherm] = int(opgeslagen.get(scherm, self.STANDAARD_TIMER))
+            except ValueError:
+                timers[scherm] = self.STANDAARD_TIMER
+        return timers
+
+    def zet_timer(self, scherm, seconden):
+        conn = self._verbind()
+        conn.execute("INSERT OR REPLACE INTO instellingen (sleutel, waarde) VALUES (?, ?)",
+                     (f"timer_{scherm}", str(int(seconden))))
+        conn.commit()
+        conn.close()
+
     # ---------- Categorieën (periodes op de tijdlijn) ----------
 
     def get_categorieen(self):

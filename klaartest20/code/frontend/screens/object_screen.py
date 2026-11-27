@@ -41,6 +41,13 @@ BUBBEL_KLEUREN = [
 ]
 
 
+def periode_tekst(cat):
+    # "Periode: Franse tijd (1795 – 1813)" als markup. Gebruikt linksonder op de wand
+    # en rechtsboven op de objectpagina, zodat het er overal hetzelfde uitziet.
+    periode = f"  ({escape_markup(cat['periode'])})" if cat["periode"] else ""
+    return f"Periode: [b]{escape_markup(cat['naam'])}[/b]{periode}"
+
+
 def zichtbare_paginas(huidig, totaal):
     # Geeft de paginanummers die onderin getoond worden; None = "..." (overgeslagen nummers).
     # Tot 7 pagina's: allemaal. Daarboven: de eerste, de laatste en de huidige met zijn buren,
@@ -290,8 +297,8 @@ class ObjectScreen(Screen):
                  tuple(tuple(sorted(cat.items())) for cat in self.categorieen),
                  self.filter_zichtbaar, self.groeperen, self.filter_id)
         if stand == self._vorige_stand and self.ids.wand.children:
-            if self.terug_naar_blok is None:
-                self.ids.veegwand.ga_naar_blok(0, animatie=False)  # nieuwe bezoeker: vooraan beginnen
+            # Terug van een objectpagina: de 9 van het laatst bekeken object; nieuwe bezoeker: vooraan
+            self.ids.veegwand.ga_naar_blok(self.terug_naar_blok or 0, animatie=False)
             self.terug_naar_blok = None
             return
         self._vorige_stand = stand
@@ -316,6 +323,7 @@ class ObjectScreen(Screen):
         self.filter_zichtbaar = toon  # De wand wordt dan groter (zie object_screen.kv)
         filter_wand.opacity = 1 if toon else 0
         filter_wand.disabled = not toon
+        self.werk_gekozen_filter_bij()
         if not toon:
             filter_wand.aantal_blokken = 1
             self.werk_filterpijlen_bij()
@@ -361,6 +369,12 @@ class ObjectScreen(Screen):
             pijl.disabled = kan_niet or totaal <= 1
             pijl.opacity = 0 if totaal <= 1 or filter_wand.disabled else (0.3 if kan_niet else 1)
 
+    def werk_gekozen_filter_bij(self):
+        # Tekst onderin links: welke periode de bezoeker gekozen heeft. Blijft altijd staan,
+        # ook als de filterbalk naar andere periodes geveegd is (dan is de bruine knop niet te zien).
+        cat = next((c for c in self.categorieen if c["id"] == self.filter_id), None)
+        self.ids.gekozen_filter.text = periode_tekst(cat) if cat else "[b]Alle objecten[/b]"
+
     def kies_filter(self, cat_id):
         # Wordt uitgevoerd als op een filterknop wordt gedrukt.
         if cat_id == self.filter_id:
@@ -369,6 +383,7 @@ class ObjectScreen(Screen):
         self._vorige_stand = None  # wand wordt hieronder opnieuw opgebouwd
         for knop_cat_id, knop in self.filter_knoppen:  # De gekozen knop wordt bruin
             knop.actief = knop_cat_id == cat_id
+        self.werk_gekozen_filter_bij()
 
         # Wand kort laten vervagen, nieuwe objecten zetten en weer laten verschijnen
         veegwand = self.ids.veegwand
@@ -498,9 +513,19 @@ class ObjectScreen(Screen):
     def open_object(self, obj_id):
         # Wordt uitgevoerd als op een objectknop wordt gedrukt.
         # Vult de detailpagina met dit object en gaat er naartoe.
+        # De objecten van de wand gaan mee (zelfde volgorde, alleen het gekozen filter),
+        # zodat de bezoeker daar met < > doorheen kan bladeren.
         self.terug_naar_blok = self.ids.veegwand.blok  # Bij terugkomen weer deze 9 laten zien
-        self.manager.get_screen("object_detail").toon_object(obj_id)
+        volgorde = [obj["id"] for _, blok in self.paginas() for obj in blok]
+        self.manager.get_screen("object_detail").toon_object(obj_id, volgorde)
         self.manager.current = "object_detail"
+
+    def blok_van(self, obj_id):
+        # Op welk blok van 9 staat dit object op de wand? (None = staat er niet op)
+        for nr, (_, blok) in enumerate(self.paginas()):
+            if any(obj["id"] == obj_id for obj in blok):
+                return nr
+        return None
 
     def admin_tik(self):
         # Wordt uitgevoerd bij elke tik op de onzichtbare knop rechtsboven.
@@ -523,7 +548,9 @@ class ObjectScreen(Screen):
     def terug_naar_home(self):
         # Deze functie wordt uitgevoerd wanneer de gebruiker op de terugknop drukt.
         # Schakelt via de ScreenManager terug naar het homescreen.
+        # Ook gebruikt door de timer in main.py (een minuut niemand aangeraakt).
         if self.filter_id is not None:
             self.filter_id = None  # Volgende bezoeker begint weer met alle objecten
             self._vorige_stand = None
+        self.terug_naar_blok = None  # ... en vooraan op de wand (niet bij het laatst bekeken object)
         self.manager.current = "home"

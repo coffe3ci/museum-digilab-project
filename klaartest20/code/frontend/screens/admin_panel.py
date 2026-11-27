@@ -3,6 +3,7 @@ import shutil  # om bestanden te kopiëren
 import threading  # wachtwoord controleren op de achtergrond (anders "bevriest" de tablet even)
 import time    # voor een unieke bestandsnaam
 
+from kivy.app import App  # Om de app de nieuwe timers te laten gebruiken
 from kivy.clock import Clock, mainthread  # mainthread: code op de hoofdthread van Kivy laten draaien
 from kivy.factory import Factory # Hiermee maken we ObjectItems aan (gedefinieerd in admin_panel.kv)
 from kivy.properties import StringProperty
@@ -19,6 +20,10 @@ from frontend.screens.object_detail_screen import PaginaVoorbeeld  # noqa: F401 
 ADMIN_GEBRUIKER = "admin"  # De beheerder (zelfde gebruikersnaam als in admin_screen.py)
 MIN_WACHTWOORD_LENGTE = 8  # Een nieuw wachtwoord moet minstens zo lang zijn
 GEEN_CATEGORIE = "Geen categorie"  # Keuze in het objectformulier als een object (nog) geen categorie heeft
+# Timers (knop "Timers"): 0 = uit, anders tussen deze grenzen (in seconden). Niet korter dan 15 s,
+# anders kun je in het beheerpaneel bijna niets meer doen voordat je eruit gegooid wordt.
+MIN_TIMER = 15
+MAX_TIMER = 3600
 
 
 def fotomap():
@@ -166,6 +171,38 @@ class AdminPanelScreen(Screen):
 
     def uitloggen(self):
         self.manager.current = "admin" # Stuurt beheerder terug naar inlogscherm
+
+    # ---------- Timers (na hoeveel seconden zonder aanraking terug naar het startscherm) ----------
+
+    def open_timer_formulier(self):
+        # Venster met per scherm een veld voor het aantal seconden (TimerFormulier in admin_panel.kv)
+        # en een aan/uit-schakelaar. Uit = 0 in de database.
+        formulier = Factory.TimerFormulier()
+        for scherm, seconden in ObjectManager().get_timers().items():
+            # Staat hij uit, dan toch 60 in het (grijze) veld: dat is de tijd als je hem weer aanzet
+            formulier.ids[f"timer_{scherm}"].text = str(seconden or ObjectManager.STANDAARD_TIMER)
+            formulier.ids[f"aan_{scherm}"].state = "down" if seconden > 0 else "normal"
+        formulier.ids.foutmelding.text = ""
+        formulier.open()
+
+    def timer_opslaan(self, formulier):
+        # Controleert de getallen, bewaart ze en laat de app meteen de nieuwe tijden gebruiken
+        nieuw = {}
+        for scherm, naam in ObjectManager.TIMER_SCHERMEN.items():
+            if formulier.ids[f"aan_{scherm}"].state != "down":
+                nieuw[scherm] = 0  # schakelaar uit = geen timer
+                continue
+            tekst = formulier.ids[f"timer_{scherm}"].text.strip()
+            seconden = int(tekst) if tekst.isdigit() else 0
+            if not MIN_TIMER <= seconden <= MAX_TIMER:
+                formulier.ids.foutmelding.text = (f"{naam}: kies een tijd van {MIN_TIMER} tot {MAX_TIMER} "
+                                                  f"seconden, of zet de timer uit.")
+                return
+            nieuw[scherm] = seconden
+        for scherm, seconden in nieuw.items():
+            ObjectManager().zet_timer(scherm, seconden)
+        App.get_running_app().laad_timers()
+        formulier.dismiss()
 
     # ---------- Categorieën (periodes op de tijdlijn) ----------
 

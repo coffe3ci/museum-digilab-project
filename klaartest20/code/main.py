@@ -16,6 +16,9 @@ from kivy.app import App  # Importeer de hoofdklasse App uit Kivy om de applicat
 from kivy.core.window import Window  # Het venster (o.a. hoe het toetsenbord op de tablet werkt)
 from kivy.lang import Builder  # Importeer Builder om Kivy (.kv) lay-outbestanden handmatig te laden
 from kivy.uix.screenmanager import FadeTransition, ScreenManager  # Schermen beheren en snel wisselen
+from kivy.uix.modalview import ModalView  # Pop-upvensters (om ze te sluiten als de timer afloopt)
+
+from backend.object_manager import ObjectManager  # Tijden van de timers (instellingen in de database)
 
 from frontend.screens.home_screen import HomeScreen  # Importeer de HomeScreen-klasse uit het betreffende bestand
 from frontend.screens.admin_screen import AdminScreen  # Importeer de AdminScreen-klasse voor het inlogscherm
@@ -86,6 +89,16 @@ class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft
         # Zorg dat het startscherm expliciet actief is zodra de app wordt getoond.
         sm.current = "home"
 
+        # Timer: na een tijd zonder aanraking terug naar het startscherm. De tijd is per scherm
+        # in te stellen in het adminpaneel (knop "Timers"). Elke aanraking, toets of ander scherm
+        # begint de tijd opnieuw.
+        self._sm = sm
+        self._timer = None
+        self.laad_timers()
+        Window.bind(on_touch_down=self.herstart_timer, on_touch_move=self.herstart_timer,
+                    on_key_down=self.herstart_timer, on_textinput=self.herstart_timer)
+        sm.bind(current=self.herstart_timer)
+
         tablet_instellingen()  # Alleen op de tablet: toetsenbord, scherm aan houden
         return sm  # Geef de geconfigureerde ScreenManager terug als het hoofd-widget van de app
 
@@ -131,6 +144,35 @@ class MuseumApp(App):  # Definieer de hoofdklasse van de applicatie die overerft
             except Exception:
                 pass
         return Clock.get_time() < self._tekenen_tot  # False = stoppen
+
+    def laad_timers(self):
+        # Leest de tijden uit de database (ook aangeroepen na "Opslaan" in het venster Timers).
+        # Ze worden onthouden, zodat niet bij elke aanraking de database gelezen hoeft te worden.
+        self.timers = ObjectManager().get_timers()
+        self.herstart_timer()
+
+    def herstart_timer(self, *args):
+        # Zet de timer van het huidige scherm weer op nul. Geeft niets terug, zodat de
+        # aanraking gewoon doorgaat naar de knoppen.
+        if self._timer is not None:
+            self._timer.cancel()
+            self._timer = None
+        seconden = self.timers.get(self._sm.current, 0)  # startscherm heeft geen timer
+        if seconden > 0:
+            self._timer = Clock.schedule_once(self.te_lang_niet_aangeraakt, seconden)
+
+    def te_lang_niet_aangeraakt(self, dt):
+        # Te lang niemand aan het scherm: terug naar het startscherm, alles klaar voor de
+        # volgende bezoeker (filter weer op "Alle objecten", wand weer vooraan).
+        # Vanuit het beheerpaneel betekent dit ook: uitgelogd (opnieuw inloggen nodig).
+        sm = self._sm
+        if self.timers.get(sm.current, 0) <= 0:
+            return
+        Logger.info(f"Timer: {sm.current} te lang niet aangeraakt, terug naar het startscherm")
+        # Open vensters (formulieren, meldingen) eerst sluiten; niet-opgeslagen wijzigingen vervallen
+        for venster in [w for w in Window.children if isinstance(w, ModalView)]:
+            venster.dismiss(animation=False)
+        sm.get_screen("objects").terug_naar_home()
 
     def on_pause(self):
         # Android: app mag op de achtergrond gepauzeerd worden (bv. bij de systeemvraag van de

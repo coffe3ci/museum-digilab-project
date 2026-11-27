@@ -325,6 +325,26 @@
             spacing: "10dp"
             pos_hint: {"center_x": 0.5, "center_y": 0.055}
 
+        # Gekozen periode onderin links: blijft altijd zichtbaar, ook als de filterbalk
+        # naar andere periodes geveegd is (tekst komt uit object_screen.py: werk_gekozen_filter_bij).
+        # Loopt door tot vlak voor de paginanummers in het midden (nooit eroverheen).
+        Label:
+            id: gekozen_filter
+            markup: True
+            font_name: "Tekst"
+            font_size: "15sp"
+            color: 125/255, 67/255, 53/255, 1
+            opacity: 1 if root.filter_zichtbaar else 0
+            size_hint: None, None
+            width: max(0, (pagina_nummers.x if pagina_nummers.children else root.width * 0.9) - self.x - dp(16))
+            height: "44dp"
+            pos_hint: {"x": 0.1, "center_y": 0.055}
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+            shorten: True
+            shorten_from: "right"
+
         # 4. Onzichtbare admin-knop (rechtsboven in de hoek): 4x snel tikken opent het inlogscherm
         Button:
             size_hint: None, None

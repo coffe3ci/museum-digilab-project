@@ -13,8 +13,33 @@ from kivy.uix.widget import Widget
 
 from backend.object_manager import ObjectManager
 from frontend.tekst_opmaak import opgemaakte_tekst  # Beschrijving + opmaak -> Kivy-markup
+from frontend.screens.object_screen import periode_tekst  # "Periode: ..." (zelfde tekst als op de wand)
 
 TUSSENRUIMTE = dp(20)  # Ruimte tussen foto's die automatisch onder elkaar staan
+
+# Indeling van de objectpagina (ook gebruikt in object_detail_screen.kv, zodat de maten in het
+# adminpaneel altijd kloppen met de echte pagina)
+PAGINA_MARGE = 0.1  # Ruimte links en rechts van de inhoud, als deel van de schermbreedte
+ZIJKOLOM_DEEL = 0.28  # Breedte van een kolom met foto's links/rechts, als deel van de inhoud
+ZIJKOLOM_RUIMTE = 20  # Ruimte (dp) tussen de beschrijving en een zijkolom
+
+
+def pagina_maten():
+    # De maten (in dp) van de objectpagina op dit scherm, voor de uitleg in het adminpaneel.
+    # Geeft (schermbreedte, schermhoogte, tekstvak zonder zijkolom, met 1 zijkolom, met 2, zijkolom).
+    breedte, hoogte = Window.width / dp(1), Window.height / dp(1)
+    inhoud = breedte * (1 - 2 * PAGINA_MARGE)
+    kolom = inhoud * ZIJKOLOM_DEEL
+    return (round(breedte), round(hoogte), round(inhoud),
+            round(inhoud - kolom - ZIJKOLOM_RUIMTE),
+            round(inhoud - 2 * kolom - 2 * ZIJKOLOM_RUIMTE), round(kolom))
+
+
+def maten_tekst(*args):
+    # Korte uitleg met de maten van dit scherm (getoond onder "Eigen grootte" in het adminpaneel)
+    scherm_b, scherm_h, tekst, tekst_1, tekst_2, kolom = pagina_maten()
+    return (f"Dit scherm: {scherm_b} x {scherm_h} dp  |  kolom met foto's links/rechts: {kolom} dp breed\n"
+            f"Tekstvak: {tekst} dp breed ({tekst_1} met 1 zijkolom, {tekst_2} met 2 zijkolommen)")
 
 # Maximale breedte x hoogte (dp) per grootte-keuze in het adminpaneel.
 # De foto past in dit vak en houdt zijn vorm. "origineel" staat hier niet in:
@@ -78,7 +103,7 @@ class PaginaInhoud(BoxLayout):
     beschrijving = StringProperty("")  # Markup (met opmaak)
     afbeelding = StringProperty("")  # Pad naar de hoofdfoto ("" = geen afbeelding)
     hoofd_hoogte_deel = NumericProperty(0.35)  # Grootte van de hoofdfoto (zie HOOFD_FORMATEN)
-    boven_ruimte = NumericProperty(dp(70))  # Ruimte bovenaan (op de echte pagina voor de terug-knop)
+    boven_ruimte = NumericProperty(dp(80))  # Ruimte bovenaan (op de echte pagina voor de terug-knop)
 
     def zet_hoofdfoto(self, pad, formaat):
         # Toon de afbeelding alleen als het bestand echt bestaat
@@ -121,12 +146,23 @@ class PaginaInhoud(BoxLayout):
 
 class ObjectDetailScreen(Screen):
     # Eén pagina voor alle objecten: hij vult zichzelf met het object waarop geklikt is.
+    volgorde = []  # Ids van de objecten waar < > doorheen bladeren (die van het gekozen filter)
+    obj_id = None  # Het object dat nu getoond wordt
 
-    def toon_object(self, obj_id):
-        # Haalt het object op uit de database en zet de gegevens op de pagina
+    def toon_object(self, obj_id, volgorde=None):
+        # Haalt het object op uit de database en zet de gegevens op de pagina.
+        # volgorde = de objecten van de wand (in die volgorde); None = de lijst van de vorige keer houden.
         obj = ObjectManager().get_object(obj_id)
         if obj is None:
             return
+        if volgorde is not None:
+            self.volgorde = list(volgorde)
+        self.obj_id = obj_id
+        self.werk_pijlen_bij()
+
+        # Rechtsboven: bij welke periode dit object hoort (leeg als het geen categorie heeft)
+        cat = next((c for c in ObjectManager().get_categorieen() if c["id"] == obj["categorie_id"]), None)
+        self.ids.object_periode.text = periode_tekst(cat) if cat else ""
 
         inhoud = self.ids.inhoud
         # Titel en beschrijving met de opmaak uit het adminpaneel (vet, schuin, onderstreept, kleur) als markup
@@ -137,8 +173,35 @@ class ObjectDetailScreen(Screen):
 
         self.ids.tekst_scroll.scroll_y = 1  # Begin bovenaan de beschrijving
 
+    def plek(self):
+        # Waar staat het huidige object in de volgorde? (None = staat er niet in)
+        return self.volgorde.index(self.obj_id) if self.obj_id in self.volgorde else None
+
+    def werk_pijlen_bij(self):
+        # Pijlen < >: vaag en uit bij het eerste/laatste object, onzichtbaar als er maar één is
+        plek = self.plek()
+        totaal = len(self.volgorde)
+        for knop, kan_niet in ((self.ids.vorige_knop, plek is None or plek == 0),
+                               (self.ids.volgende_knop, plek is None or plek >= totaal - 1)):
+            knop.disabled = kan_niet
+            knop.opacity = 0 if plek is None or totaal <= 1 else (0.3 if kan_niet else 1)
+
+    def vorige(self):
+        plek = self.plek()
+        if plek:  # niet None en niet het eerste object
+            self.toon_object(self.volgorde[plek - 1])
+
+    def volgende(self):
+        plek = self.plek()
+        if plek is not None and plek < len(self.volgorde) - 1:
+            self.toon_object(self.volgorde[plek + 1])
+
     def terug(self):
-        # Terug naar het overzicht met alle objecten
+        # Terug naar het overzicht met alle objecten, op de 9 waar het laatst bekeken object staat
+        wand = self.manager.get_screen("objects")
+        blok = wand.blok_van(self.obj_id)
+        if blok is not None:
+            wand.terug_naar_blok = blok
         self.manager.current = "objects"
 
 

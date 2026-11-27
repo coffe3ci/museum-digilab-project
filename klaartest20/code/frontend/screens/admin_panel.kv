@@ -4,6 +4,8 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import KLEUREN frontend.tekst_opmaak.KLEUREN
 #:import MODI frontend.tekst_opmaak.MODI
+#:import maten_tekst frontend.screens.object_detail_screen.maten_tekst
+#:import ObjectManager backend.object_manager.ObjectManager
 
 # ============================================================
 # OBJECT ITEM
@@ -677,6 +679,19 @@
                                 hint_text: "Hoogte"
                                 multiline: False
                                 input_filter: "int"   # alleen cijfers
+
+                        # Maten van de objectpagina op dit scherm, zodat je weet welke breedte past.
+                        # Rekent mee met de echte schermgrootte (maten_tekst in object_detail_screen.py).
+                        Label:
+                            text: maten_tekst(Window.size)
+                            font_name: "Klein"
+                            font_size: "11sp"
+                            color: 0.55, 0.55, 0.55, 1
+                            size_hint_y: None
+                            height: self.texture_size[1] + dp(4)
+                            halign: "left"
+                            valign: "middle"
+                            text_size: self.width, None
 
                     # Positie op de objectpagina
                     Kaart:
@@ -1438,6 +1453,33 @@
                             size: self.size
                             radius: [dp(8)]
 
+                # Opent de pop-up om de timers in te stellen (na hoeveel tijd terug naar het startscherm)
+                Button:
+                    text: "Timers"
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    bold: True
+                    color: 125/255, 67/255, 53/255, 1
+
+                    size_hint: None, None
+                    size: "120dp", "44dp"
+
+                    background_normal: ""
+                    background_down: ""
+                    background_color: 0, 0, 0, 0
+
+                    on_release:
+                        root.open_timer_formulier()
+
+                    canvas.before:
+                        Color:
+                            rgba: (220/255, 210/255, 198/255, 1) if self.state == "down" else (232/255, 224/255, 212/255, 1)
+
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8)]
+
                 # Kioskmodus: app vastzetten op de tablet (bezoekers kunnen de app niet verlaten)
                 Button:
                     text: root.kiosk_tekst
@@ -1608,6 +1650,208 @@
             HoofdKnop:
                 text: "Opslaan"
                 on_release: app.root.get_screen("admin_panel").wachtwoord_opslaan(root)
+
+# ============================================================
+# TIMERS (pop-up): per scherm na hoeveel seconden zonder aanraking
+# de app terug naar het startscherm gaat; per scherm een aan/uit-schakelaar (uit = geen timer).
+# Opslaan: admin_panel.py (timer_opslaan); de timer zelf staat in main.py.
+# ============================================================
+
+<TimerFormulier@Popup>:
+    title: "Timers"
+    title_font: "Titel"
+    title_size: "18sp"
+    title_color: 0.15, 0.15, 0.15, 1
+    separator_color: 125/255, 67/255, 53/255, 1
+    background: ""
+    background_color: 244/255, 239/255, 230/255, 1
+    size_hint: None, None
+    # Nooit groter dan het scherm
+    width: min(Window.width * 0.9, dp(560))
+    height: min(Window.height * 0.9, dp(390))
+    auto_dismiss: False
+
+    BoxLayout:
+        orientation: "vertical"
+        padding: "6dp"
+        spacing: "8dp"
+
+        Label:
+            text: "Na hoeveel seconden zonder aanraking gaat de app terug naar het startscherm? Zet een scherm op Uit voor geen timer. Bij het beheerpaneel betekent dit ook: uitgelogd, en wat nog niet is opgeslagen gaat verloren."
+            font_name: "Tekst"
+            font_size: "13sp"
+            color: 0.3, 0.3, 0.3, 1
+            size_hint_y: None
+            height: self.texture_size[1]
+            text_size: self.width, None
+
+        Kaart:
+            BoxLayout:
+                size_hint_y: None
+                height: "40dp"
+                spacing: "8dp"
+                Label:
+                    text: ObjectManager.TIMER_SCHERMEN["objects"]
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    color: 0.2, 0.2, 0.2, 1
+                    halign: "left"
+                    valign: "middle"
+                    text_size: self.size
+                # Aan/uit: uit = geen timer op dit scherm (het getal blijft bewaard voor als je hem weer aanzet)
+                Schakelaar:
+                    id: aan_objects
+                    pos_hint: {"center_y": 0.5}
+                    on_state:
+                        root.ids.foutmelding.text = ""
+                        if self.state == "down" and not root.ids.timer_objects.text.strip("0"): root.ids.timer_objects.text = "60"
+                FormulierVeld:
+                    id: timer_objects
+                    disabled: aan_objects.state != "down"
+                    opacity: 1 if aan_objects.state == "down" else 0.4
+                    size_hint_x: None
+                    width: "90dp"
+                    multiline: False
+                    input_filter: "int"   # alleen cijfers
+                    write_tab: False
+                    on_text: root.ids.foutmelding.text = ""
+                Label:
+                    text: "seconden"
+                    font_name: "Klein"
+                    font_size: "13sp"
+                    color: 0.45, 0.45, 0.45, 1
+                    size_hint_x: None
+                    width: "70dp"
+
+            BoxLayout:
+                size_hint_y: None
+                height: "40dp"
+                spacing: "8dp"
+                Label:
+                    text: ObjectManager.TIMER_SCHERMEN["object_detail"]
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    color: 0.2, 0.2, 0.2, 1
+                    halign: "left"
+                    valign: "middle"
+                    text_size: self.size
+                # Aan/uit: uit = geen timer op dit scherm (het getal blijft bewaard voor als je hem weer aanzet)
+                Schakelaar:
+                    id: aan_object_detail
+                    pos_hint: {"center_y": 0.5}
+                    on_state:
+                        root.ids.foutmelding.text = ""
+                        if self.state == "down" and not root.ids.timer_object_detail.text.strip("0"): root.ids.timer_object_detail.text = "60"
+                FormulierVeld:
+                    id: timer_object_detail
+                    disabled: aan_object_detail.state != "down"
+                    opacity: 1 if aan_object_detail.state == "down" else 0.4
+                    size_hint_x: None
+                    width: "90dp"
+                    multiline: False
+                    input_filter: "int"   # alleen cijfers
+                    write_tab: False
+                    on_text: root.ids.foutmelding.text = ""
+                Label:
+                    text: "seconden"
+                    font_name: "Klein"
+                    font_size: "13sp"
+                    color: 0.45, 0.45, 0.45, 1
+                    size_hint_x: None
+                    width: "70dp"
+
+            BoxLayout:
+                size_hint_y: None
+                height: "40dp"
+                spacing: "8dp"
+                Label:
+                    text: ObjectManager.TIMER_SCHERMEN["admin"]
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    color: 0.2, 0.2, 0.2, 1
+                    halign: "left"
+                    valign: "middle"
+                    text_size: self.size
+                # Aan/uit: uit = geen timer op dit scherm (het getal blijft bewaard voor als je hem weer aanzet)
+                Schakelaar:
+                    id: aan_admin
+                    pos_hint: {"center_y": 0.5}
+                    on_state:
+                        root.ids.foutmelding.text = ""
+                        if self.state == "down" and not root.ids.timer_admin.text.strip("0"): root.ids.timer_admin.text = "60"
+                FormulierVeld:
+                    id: timer_admin
+                    disabled: aan_admin.state != "down"
+                    opacity: 1 if aan_admin.state == "down" else 0.4
+                    size_hint_x: None
+                    width: "90dp"
+                    multiline: False
+                    input_filter: "int"   # alleen cijfers
+                    write_tab: False
+                    on_text: root.ids.foutmelding.text = ""
+                Label:
+                    text: "seconden"
+                    font_name: "Klein"
+                    font_size: "13sp"
+                    color: 0.45, 0.45, 0.45, 1
+                    size_hint_x: None
+                    width: "70dp"
+
+            BoxLayout:
+                size_hint_y: None
+                height: "40dp"
+                spacing: "8dp"
+                Label:
+                    text: ObjectManager.TIMER_SCHERMEN["admin_panel"]
+                    font_name: "Tekst"
+                    font_size: "15sp"
+                    color: 0.2, 0.2, 0.2, 1
+                    halign: "left"
+                    valign: "middle"
+                    text_size: self.size
+                # Aan/uit: uit = geen timer op dit scherm (het getal blijft bewaard voor als je hem weer aanzet)
+                Schakelaar:
+                    id: aan_admin_panel
+                    pos_hint: {"center_y": 0.5}
+                    on_state:
+                        root.ids.foutmelding.text = ""
+                        if self.state == "down" and not root.ids.timer_admin_panel.text.strip("0"): root.ids.timer_admin_panel.text = "60"
+                FormulierVeld:
+                    id: timer_admin_panel
+                    disabled: aan_admin_panel.state != "down"
+                    opacity: 1 if aan_admin_panel.state == "down" else 0.4
+                    size_hint_x: None
+                    width: "90dp"
+                    multiline: False
+                    input_filter: "int"   # alleen cijfers
+                    write_tab: False
+                    on_text: root.ids.foutmelding.text = ""
+                Label:
+                    text: "seconden"
+                    font_name: "Klein"
+                    font_size: "13sp"
+                    color: 0.45, 0.45, 0.45, 1
+                    size_hint_x: None
+                    width: "70dp"
+
+        Widget:   # lege ruimte
+
+        FoutLabel:
+            id: foutmelding
+
+        BoxLayout:
+            size_hint_y: None
+            height: "42dp"
+            spacing: "10dp"
+
+            ZachteKnop:
+                text: "Annuleren"
+                height: "42dp"
+                on_release: root.dismiss()
+
+            HoofdKnop:
+                text: "Opslaan"
+                on_release: app.root.get_screen("admin_panel").timer_opslaan(root)
 
 # ============================================================
 # CATEGORIEËN (periodes op de tijdlijn)

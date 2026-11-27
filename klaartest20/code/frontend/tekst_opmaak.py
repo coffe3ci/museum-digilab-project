@@ -10,6 +10,7 @@
 import json
 import re
 
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivy.uix.textinput import TextInput
@@ -324,6 +325,15 @@ class OpmaakVeld(TextInput):
         self.stijlen = naar_stijlen(tekst, opmaak_json)
         self.text = tekst
         self._ververs()
+        # Het veld wordt gevuld vóórdat het formulier zijn echte breedte heeft. Kivy rekent de
+        # scrollstand dan uit voor een smal veld, waardoor de tekst buiten beeld stond (leeg veld).
+        # Zodra de breedte klopt: cursor en scrollstand terug naar het begin van de tekst.
+        Clock.schedule_once(self._naar_begin, 0.2)
+
+    def _naar_begin(self, *args):
+        self.cursor = (0, 0)
+        self.scroll_y = 0
+        self.scroll_x = 0
 
     def inhoud(self):
         # Geeft (tekst, opmaak_json) om op te slaan; spaties/enters aan begin en eind gaan eraf

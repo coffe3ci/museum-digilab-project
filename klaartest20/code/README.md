@@ -19,14 +19,25 @@ Tik op **Bekijk de objecten** om naar de objectenwand te gaan.
 - **Vegen** naar links of rechts, of de **pijlen** links en rechts, gaan naar de volgende of vorige pagina met objecten.
   De paginanummers onderaan laten zien waar je bent.
 - **Filterbalk** (als die aan staat): tik op een periode, bijvoorbeeld *Franse tijd*, om alleen de objecten uit
-  die periode te zien. Tik op *Alle objecten* om weer alles te zien.
+  die periode te zien. Tik op *Alle objecten* om weer alles te zien. Linksonder staat altijd welke periode
+  gekozen is (bijvoorbeeld *Periode: Franse tijd*), ook als je de filterbalk naar andere periodes hebt geveegd.
 - Als groeperen aan staat, staan objecten uit dezelfde periode bij elkaar in een gekleurd vlak met de naam van de
   periode erboven.
 - Met de knop **<** linksboven ga je terug naar het startscherm.
 
 ### Objectpagina
-Je ziet de titel, de beschrijving, de hoofdfoto en eventuele extra foto's. Met **<** ga je terug naar de
-objectenwand.
+Je ziet de titel, de beschrijving, de hoofdfoto en eventuele extra foto's.
+- Met **<** linksboven ga je terug naar de objectenwand (op de pagina met het laatst bekeken object).
+- Met de ronde pijlen **<** en **>** links en rechts in het midden ga je naar het vorige of volgende object.
+  Als er een periode gekozen is, blader je alleen door de objecten van die periode. Bij het eerste of laatste
+  object is de pijl vaag.
+- Rechtsboven staat bij welke periode het object hoort, bijvoorbeeld *Periode: Mobilisatie & Grebbeberg*.
+  Heeft het object geen periode, dan staat daar niets.
+
+### Vanzelf terug naar het startscherm
+Raakt niemand het scherm een tijd aan, dan gaat de app vanzelf terug naar het startscherm. Standaard is dat na
+**een minuut**. De filterbalk staat dan weer op *Alle objecten*, zodat de volgende bezoeker opnieuw begint.
+Medewerkers kunnen de tijd per scherm instellen met de knop **Timers** in het beheerpaneel (zie hoofdstuk 3).
 
 ## 2. Inloggen als medewerker
 
@@ -53,11 +64,28 @@ Na het inloggen zie je de lijst met alle objecten. Bovenaan en onderaan staan de
 | **+ Object toevoegen** | Een nieuw object maken |
 | **Categorieën** | Periodes beheren en kiezen hoe de wand eruitziet voor bezoekers |
 | **Wachtwoord wijzigen** | Het wachtwoord van het beheergedeelte veranderen |
+| **Timers** | Instellen na hoeveel tijd zonder aanraking de app terug naar het startscherm gaat (zie hieronder) |
 | **Kioskmodus: AAN/UIT** | De app op de tablet vastzetten of losmaken (zie hoofdstuk 7) |
 | **Uitloggen** | Terug naar het inlogscherm |
 
 Bij elk object in de lijst staan **Bewerken** en **Verwijderen**. Na *Verwijderen* vraagt de app eerst of je het
 zeker weet. Een verwijderd object kan niet worden teruggehaald.
+
+### Timers instellen
+Met de knop **Timers** stel je per scherm in na hoeveel seconden zonder aanraking de app vanzelf terug naar het
+startscherm gaat. Elke aanraking begint de tijd opnieuw.
+
+| Scherm | Standaard | Wat er gebeurt als de tijd om is |
+|---|---|---|
+| Objectenwand | 60 s, aan | Terug naar het startscherm, filter weer op *Alle objecten* |
+| Objectpagina (één object) | 60 s, aan | Idem |
+| Inlogscherm | 60 s, aan | Terug naar het startscherm (wachtwoordveld wordt leeggemaakt) |
+| Beheerpaneel | 60 s, aan | Uitgelogd, open vensters gaan dicht; wat nog niet is opgeslagen gaat verloren |
+
+- Met de schakelaar **Aan/Uit** zet je de timer per scherm aan of uit. Staat hij op *Uit*, dan gaat dat scherm
+  nooit vanzelf terug.
+- De tijd moet tussen 15 en 3600 seconden (1 uur) liggen.
+- Tik op **Opslaan**: de nieuwe tijden gelden meteen. Ze worden bewaard in de database (tabel `instellingen`).
 
 ## 4. Een object toevoegen of bewerken
 
@@ -111,7 +139,7 @@ Tik bij **Extra afbeeldingen** op **+ Toevoegen**, of op een bestaande extra afb
 | Instelling | Uitleg |
 |---|---|
 | **Afbeelding** | De foto kiezen. Verplicht. |
-| **Naam van de afbeelding** | Verplicht. |
+| **Titel** | Verplicht. De naam van de afbeelding; staat onder de foto als het vinkje hieronder aan staat. |
 | **Titel tonen onder de foto** | Vinkje aan: de naam staat onder de foto op de objectpagina. |
 | **Positie op de pagina** | Links, Midden of Rechts. |
 | **Hoogte vanaf boven** | Alleen bij Links en Rechts: op hoeveel ruimte (in dp) vanaf de bovenkant de foto staat. Leeg = automatisch onder elkaar. |
@@ -119,7 +147,29 @@ Tik bij **Extra afbeeldingen** op **+ Toevoegen**, of op een bestaande extra afb
 | **Breedte / Hoogte** | Een maximale maat in dp, bijvoorbeeld 200. Leeg = geen limiet. |
 
 Tik op **Opslaan** in het venster van de extra afbeelding, en daarna ook op **Opslaan** in het objectformulier.
-Pas dan wordt alles echt bewaard. Met **Verwijder** haal je een extra afbeelding weg.
+Pas dan wordt alles echt bewaard. Met **Verwijderen** haal je een extra afbeelding weg.
+
+### Maten van het scherm
+Alle maten in de app zijn in **dp**. Dat is een maat die op elk scherm ongeveer even groot is. Op de tablet
+(Samsung Galaxy Tab A9+, 11 inch, 1920 × 1200 pixels, liggend) is 1 dp = 1,5 pixel.
+
+| Wat | Maat op de tablet |
+|---|---|
+| Hele scherm | 1280 × 800 dp |
+| Beschrijvingsvak, geen foto's links of rechts | 1024 dp breed |
+| Beschrijvingsvak, foto's aan één kant | ca. 717 dp breed |
+| Beschrijvingsvak, foto's aan beide kanten | ca. 410 dp breed |
+| Kolom voor foto's links of rechts | ca. 287 dp breed |
+| Hoofdfoto Klein / Normaal / Groot | 200 / 280 / 400 dp hoog |
+
+De hoogte van het beschrijvingsvak heeft geen grens: de pagina scrolt mee.
+
+- Een **midden**-foto is nooit breder dan het beschrijvingsvak; een foto **links of rechts** nooit breder dan
+  de kolom. Een grotere *Breedte* heeft dus geen zin.
+- Voor een scherpe foto: zorg dat de foto minstens 1,5 × zo veel pixels breed is als de dp-breedte
+  (bijvoorbeeld 400 dp breed → foto van minstens 600 pixels breed).
+- In het venster van de extra afbeelding staat onder *Eigen grootte* een grijze regel met de maten van het
+  scherm waarop je op dat moment werkt. Op de tablet zijn dat de maten hierboven.
 
 ## 5. Categorieën (periodes)
 
@@ -153,10 +203,11 @@ Tik op **Opslaan**. Spaties aan het begin of eind van het wachtwoord tellen niet
 In kioskmodus zit de app vast op de tablet. Bezoekers kunnen de app dan niet verlaten: de home-, terug- en
 recente-apps-knop werken niet en de balken boven en onder zijn verborgen. Het scherm blijft aan zolang de app open is.
 
-**Eenmalig instellen op de tablet** (Samsung Galaxy Tab A 10.1):
-1. Open *Instellingen → Vergrendelscherm en beveiliging → Andere beveiligingsinstellingen*.
-2. Zet **Vensters vastzetten** aan.
-3. Zet daarbij **Pincode vragen bij losmaken** aan.
+**Eenmalig instellen op de tablet** (Samsung Galaxy Tab A9+):
+1. Open *Instellingen → Beveiliging en privacy → Meer beveiligingsinstellingen*. (Kun je het niet vinden? Tik in
+   Instellingen op het vergrootglas en zoek op *vastzetten*.)
+2. Zet **App vastzetten** aan.
+3. Zet daarbij de optie aan die bij het losmaken om de **pincode** van de tablet vraagt.
 
 **Kioskmodus aanzetten:** log in en tik op **Kioskmodus: UIT**. De eerste keer vraagt Android om bevestiging.
 Daarna staat er *Kioskmodus: AAN*.
@@ -199,7 +250,7 @@ python dev.py    # starten met live herladen tijdens het ontwikkelen
 ## Mappen en bestanden
 | Pad | Inhoud |
 |---|---|
-| `main.py` | Start de app en verbindt de schermen met elkaar |
+| `main.py` | Start de app, verbindt de schermen met elkaar en regelt de timers (terug naar het startscherm) |
 | `dev.py` | Start de app met live herladen van wijzigingen |
 | `frontend/screens/` | De schermen (`.py` = werking, `.kv` = vormgeving): `home_screen`, `object_screen` (objectenwand), `object_detail_screen` (objectpagina), `admin_screen` (inloggen), `admin_panel` (beheer) |
 | `frontend/tekst_opmaak.py` | Opmaak van titels en beschrijvingen (kleuren, vet, schuin) |

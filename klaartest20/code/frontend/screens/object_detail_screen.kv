@@ -1,4 +1,8 @@
 #:import Window kivy.core.window.Window
+# Indeling van de pagina (zelfde getallen als in object_detail_screen.py, voor de maten in het adminpaneel)
+#:import PAGINA_MARGE frontend.screens.object_detail_screen.PAGINA_MARGE
+#:import ZIJKOLOM_DEEL frontend.screens.object_detail_screen.ZIJKOLOM_DEEL
+#:import ZIJKOLOM_RUIMTE frontend.screens.object_detail_screen.ZIJKOLOM_RUIMTE
 # Maten van de lijst rond de hoofdfoto (in dp)
 #:set PASSE_PARTOUT 18
 #:set RAND 34
@@ -146,7 +150,7 @@
     height: self.minimum_height
     spacing: "20dp"
     # 10% ruimte links en rechts; bovenaan ruimte voor de terug-knop
-    padding: [self.width * 0.1, self.boven_ruimte, self.width * 0.1, dp(25)]
+    padding: [self.width * PAGINA_MARGE, self.boven_ruimte, self.width * PAGINA_MARGE, dp(25)]
 
     # Hoofdfoto in een lijst (alleen als er een afbeelding is)
     Schilderij:
@@ -177,7 +181,7 @@
         ZijKolom:
             id: kolom_links
             size_hint: None, None
-            width: rij.width * 0.28 if self.children else 0
+            width: rij.width * ZIJKOLOM_DEEL if self.children else 0
             height: 0
             pos_hint: {"top": 1}
 
@@ -190,7 +194,7 @@
             pos_hint: {"top": 1}
             spacing: "25dp"
             # Ruimte tussen de tekst en een zijkolom (alleen als die zijkolom foto's heeft)
-            padding: [dp(20) if kolom_links.children else 0, 0, dp(20) if kolom_rechts.children else 0, 0]
+            padding: [dp(ZIJKOLOM_RUIMTE) if kolom_links.children else 0, 0, dp(ZIJKOLOM_RUIMTE) if kolom_rechts.children else 0, 0]
 
             Label:
                 text: root.beschrijving
@@ -217,7 +221,7 @@
         ZijKolom:
             id: kolom_rechts
             size_hint: None, None
-            width: rij.width * 0.28 if self.children else 0
+            width: rij.width * ZIJKOLOM_DEEL if self.children else 0
             height: 0
             pos_hint: {"top": 1}
 
@@ -259,13 +263,28 @@
             PaginaInhoud:
                 id: inhoud
 
-        # 3. Terug-knop (Ronde knop linksboven, blijft altijd staan)
+        # 3. Vorige / volgende object (binnen het gekozen filter, in de volgorde van de wand).
+        #    Vaag bij het eerste/laatste object, onzichtbaar als er maar één is
+        #    (regelt object_detail_screen.py: werk_pijlen_bij). PijlKnop staat in object_screen.kv.
+        PijlKnop:
+            id: vorige_knop
+            text: "<"
+            pos_hint: {"center_x": 0.05, "center_y": 0.5}
+            on_release: root.vorige()
+
+        PijlKnop:
+            id: volgende_knop
+            text: ">"
+            pos_hint: {"center_x": 0.95, "center_y": 0.5}
+            on_release: root.volgende()
+
+        # 4. Terug-knop (Ronde knop linksboven, blijft altijd staan)
         Button:
             text: "<"
-            font_size: "22sp"
+            font_size: "28sp"
             color: 0.2, 0.2, 0.2, 1
             size_hint: None, None
-            size: "44dp", "44dp"
+            size: "56dp", "56dp"
             pos_hint: {"x": 0.04, "top": 0.96}
             background_normal: ""
             background_down: ""
@@ -277,4 +296,19 @@
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [22]
+                    radius: [28]
+
+        # 5. Periode van dit object rechtsboven (zelfde tekst als linksonder op de wand).
+        #    Blijft staan tijdens scrollen; gewoon tekst, zonder achtergrond.
+        #    Tekst komt uit object_detail_screen.py (toon_object); leeg = geen categorie = onzichtbaar.
+        Label:
+            id: object_periode
+            markup: True
+            font_name: "Tekst"
+            font_size: "15sp"
+            color: 125/255, 67/255, 53/255, 1
+            opacity: 1 if self.text else 0
+            size_hint: None, None
+            # Even hoog als de terug-knop en op dezelfde hoogte; zo breed als de tekst
+            size: self.texture_size[0], dp(56)
+            pos_hint: {"right": 0.96, "top": 0.96}
